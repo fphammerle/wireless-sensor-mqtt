@@ -64,10 +64,10 @@
         },
         "wireless-sensor": {
             "hashes": [
-                "sha256:604606bc301d5dc0ea7a8e08a436df4168f669a548d1e902efdc3de55109c6ae",
-                "sha256:e3812bdb4d4017745dc61fb40b52f9e9c73e6ba58bfd2c8a65dc45334e26d86e"
+                "sha256:12ca178053ca5728dd86d2673970fd244240bd0813b6a8e58c9104545f8bc69c",
+                "sha256:bc9deaad7139f5a703addea55d1da657e2e960ea72a526c98eb6388d3b86c87b"
             ],
-            "version": "==0.1.1"
+            "version": "==0.2.0"
         },
         "wireless-sensor-mqtt": {
             "editable": true,

@@ -17,14 +17,18 @@
 
 import argparse
 import logging
-import typing
 import pathlib
+import random
+import time
+import typing
 
 import paho.mqtt.client
 import wireless_sensor
 
 _MQTT_DEFAULT_PORT = 1883
 _MQTT_DEFAULT_TLS_PORT = 8883
+_MEASUREMENT_MOCKS_COUNT = 3
+_MEASUREMENT_MOCKS_INTERVAL_SECONDS = 8
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,16 +73,26 @@ def _init_mqtt_client(
     return client
 
 
+def _mock_measurement() -> wireless_sensor.Measurement:
+    time.sleep(_MEASUREMENT_MOCKS_INTERVAL_SECONDS)
+    return wireless_sensor.Measurement(
+        decoding_timestamp=None,
+        temperature_degrees_celsius=random.uniform(20.0, 30.0),
+        relative_humidity=random.uniform(0.4, 0.6),
+    )
+
+
 def _run(
     *,
     mqtt_host: str,
     mqtt_port: int,
+    mqtt_disable_tls: bool,
     mqtt_username: typing.Optional[str],
     mqtt_password: typing.Optional[str],
     mqtt_topic_prefix: str,
     homeassistant_discovery_prefix: str,
     homeassistant_node_id: str,  # TODO validate
-    mqtt_disable_tls: bool = False,
+    mock_measurements: bool,
 ) -> None:
     # pylint: disable=too-many-arguments
     # https://pypi.org/project/paho-mqtt/
@@ -92,7 +106,14 @@ def _run(
     # TODO home assistant discovery
     temperature_topic = mqtt_topic_prefix + "/temperature-degrees-celsius"
     humidity_topic = mqtt_topic_prefix + "/relative-humidity"
-    for measurement in wireless_sensor.FT017TH().receive():
+    if mock_measurements:
+        logging.warning("publishing %d mocked measurements", _MEASUREMENT_MOCKS_COUNT)
+        measurement_iter = map(
+            lambda _: _mock_measurement(), range(_MEASUREMENT_MOCKS_COUNT)
+        )
+    else:
+        measurement_iter = wireless_sensor.FT017TH().receive()
+    for measurement in measurement_iter:
         mqtt_client.publish(
             topic=temperature_topic,
             payload=str(measurement.temperature_degrees_celsius),
@@ -146,7 +167,12 @@ def _main() -> None:
         default="FT017TH",
         help=" ",
     )
-    argparser.add_argument("--debug", action="store_true")
+    argparser.add_argument(
+        "--mock-measurements",
+        action="store_true",
+        help="publish random values to test MQTT connection",
+    )
+    argparser.add_argument("--debug", action="store_true", help="increase verbosity")
     args = argparser.parse_args()
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
@@ -178,4 +204,5 @@ def _main() -> None:
         mqtt_topic_prefix=args.mqtt_topic_prefix,
         homeassistant_discovery_prefix=args.homeassistant_discovery_prefix,
         homeassistant_node_id=args.homeassistant_node_id,
+        mock_measurements=args.mock_measurements,
     )

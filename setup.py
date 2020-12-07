@@ -68,7 +68,10 @@ setuptools.setup(
     entry_points={
         "console_scripts": ["wireless-sensor-mqtt = wireless_sensor_mqtt:_main"]
     },
-    install_requires=["wireless-sensor>=0.1,<2", "paho-mqtt<2"],
+    install_requires=[
+        "wireless-sensor>=0.2.0,<0.3",  # >=0.2.0 for Measurement type
+        "paho-mqtt<2",
+    ],
     setup_requires=["setuptools_scm"],
     tests_require=["pytest"],
 )

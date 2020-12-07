@@ -49,12 +49,12 @@ def test__run(
     with unittest.mock.patch("wireless_sensor.FT017TH") as sensor_class_mock:
         sensor_class_mock().receive.side_effect = [
             [
-                wireless_sensor._Measurement(
+                wireless_sensor.Measurement(
                     decoding_timestamp=datetime.datetime(2020, 12, 7, 18, 5, 1),
                     temperature_degrees_celsius=23.1234567,
                     relative_humidity=0.501234567,
                 ),
-                wireless_sensor._Measurement(
+                wireless_sensor.Measurement(
                     decoding_timestamp=datetime.datetime(2020, 12, 7, 18, 6, 19),
                     temperature_degrees_celsius=24.1234567,
                     relative_humidity=0.401234567,
@@ -75,6 +75,7 @@ def test__run(
                 mqtt_topic_prefix=mqtt_topic_prefix,
                 homeassistant_discovery_prefix="homeassistant",
                 homeassistant_node_id="ft017th-living-room",
+                mock_measurements=False,
             )
     init_mqtt_client_mock.assert_called_once_with(
         host=mqtt_host,
@@ -103,3 +104,45 @@ def test__run(
     assert publish_calls_args[1][1]["payload"] == "0.501234567"
     assert publish_calls_args[2][1]["payload"] == "24.1234567"
     assert publish_calls_args[3][1]["payload"] == "0.401234567"
+
+
+@pytest.mark.parametrize("mqtt_topic_prefix", ["ft017th"])
+def test__run_mock_measurements(mqtt_topic_prefix,):
+    # pylint: disable=too-many-arguments
+    mqtt_client_mock = unittest.mock.MagicMock()
+    with unittest.mock.patch(
+        "wireless_sensor_mqtt._init_mqtt_client"
+    ) as init_mqtt_client_mock, unittest.mock.patch("time.sleep") as sleep_mock:
+        init_mqtt_client_mock.return_value = mqtt_client_mock
+        wireless_sensor_mqtt._run(
+            mqtt_host="mqtt-broker.local",
+            mqtt_port=1234,
+            mqtt_disable_tls=True,
+            mqtt_username=None,
+            mqtt_password=None,
+            mqtt_topic_prefix=mqtt_topic_prefix,
+            homeassistant_discovery_prefix="homeassistant",
+            homeassistant_node_id="ft017th-living-room",
+            mock_measurements=True,
+        )
+    assert init_mqtt_client_mock.call_count == 1
+    assert all(c[0][0] == 8 for c in sleep_mock.call_args_list)
+    publish_calls_args = mqtt_client_mock.publish.call_args_list
+    assert len(publish_calls_args) == 2 * 3
+    for call_args in publish_calls_args:
+        assert not call_args[0]  # positional args
+        assert set(call_args[1].keys()) == {"topic", "payload", "retain"}
+        assert call_args[1]["retain"] is False
+        assert float(call_args[1]["payload"]) > 0
+    assert (
+        publish_calls_args[0][1]["topic"]
+        == publish_calls_args[2][1]["topic"]
+        == publish_calls_args[4][1]["topic"]
+        == mqtt_topic_prefix + "/temperature-degrees-celsius"
+    )
+    assert (
+        publish_calls_args[1][1]["topic"]
+        == publish_calls_args[3][1]["topic"]
+        == publish_calls_args[5][1]["topic"]
+        == mqtt_topic_prefix + "/relative-humidity"
+    )

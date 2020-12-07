@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 import typing
 import unittest.mock
 
@@ -155,6 +156,7 @@ def test__main(
         mqtt_topic_prefix=expected_topic_prefix or "wireless-sensor/FT017TH",
         homeassistant_discovery_prefix="homeassistant",
         homeassistant_node_id="FT017TH",
+        mock_measurements=False,
     )
 
 
@@ -201,6 +203,7 @@ def test__main_password_file(tmpdir, password_file_content, expected_password):
         mqtt_topic_prefix="wireless-sensor/FT017TH",
         homeassistant_discovery_prefix="homeassistant",
         homeassistant_node_id="FT017TH",
+        mock_measurements=False,
     )
 
 
@@ -264,3 +267,33 @@ def test__main_homeassistant_node_id(args, node_id):
         wireless_sensor_mqtt._main()
     assert run_mock.call_count == 1
     assert run_mock.call_args[1]["homeassistant_node_id"] == node_id
+
+
+@pytest.mark.parametrize(
+    ("additional_argv", "root_log_level"),
+    [([], logging.INFO), (["--debug"], logging.DEBUG)],
+)
+def test__main_log_level(additional_argv, root_log_level):
+    with unittest.mock.patch("wireless_sensor_mqtt._run"), unittest.mock.patch(
+        "logging.basicConfig"
+    ) as logging_basic_config_mock, unittest.mock.patch(
+        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
+    ):
+        wireless_sensor_mqtt._main()
+    assert logging_basic_config_mock.call_count == 1
+    assert logging_basic_config_mock.call_args[1]["level"] == root_log_level
+    assert logging.getLogger("cc1101").getEffectiveLevel() == logging.INFO
+
+
+@pytest.mark.parametrize(
+    ("additional_argv", "mock_measurements"),
+    [([], False), (["--mock-measurements"], True)],
+)
+def test__main_mock_measurements(additional_argv, mock_measurements):
+    with unittest.mock.patch(
+        "wireless_sensor_mqtt._run"
+    ) as main_mock, unittest.mock.patch(
+        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
+    ):
+        wireless_sensor_mqtt._main()
+    assert main_mock.call_args[1]["mock_measurements"] == mock_measurements
