@@ -43,33 +43,34 @@ def _mqtt_on_connect(
 
 
 def _init_mqtt_client(
-    # TODO remove "mqtt_" prefix
-    mqtt_host: str,
-    mqtt_port: int,
-    mqtt_username: typing.Optional[str],
-    mqtt_password: typing.Optional[str],
-    mqtt_disable_tls: bool,
+    *,
+    host: str,
+    port: int,
+    username: typing.Optional[str],
+    password: typing.Optional[str],
+    disable_tls: bool,
 ) -> paho.mqtt.client.Client:
     # https://pypi.org/project/paho-mqtt/
-    mqtt_client = paho.mqtt.client.Client()
-    mqtt_client.on_connect = _mqtt_on_connect
-    if not mqtt_disable_tls:
-        mqtt_client.tls_set(ca_certs=None)  # enable tls trusting default system certs
+    client = paho.mqtt.client.Client()
+    client.on_connect = _mqtt_on_connect
+    if not disable_tls:
+        client.tls_set(ca_certs=None)  # enable tls trusting default system certs
     _LOGGER.info(
         "connecting to MQTT broker %s:%d (TLS %s)",
-        mqtt_host,
-        mqtt_port,
-        "disabled" if mqtt_disable_tls else "enabled",
+        host,
+        port,
+        "disabled" if disable_tls else "enabled",
     )
-    if mqtt_username:
-        mqtt_client.username_pw_set(username=mqtt_username, password=mqtt_password)
-    elif mqtt_password:
+    if username:
+        client.username_pw_set(username=username, password=password)
+    elif password:
         raise ValueError("Missing MQTT username")
-    mqtt_client.connect(host=mqtt_host, port=mqtt_port)
-    return mqtt_client
+    client.connect(host=host, port=port)
+    return client
 
 
 def _run(
+    *,
     mqtt_host: str,
     mqtt_port: int,
     mqtt_username: typing.Optional[str],
@@ -82,11 +83,11 @@ def _run(
     # pylint: disable=too-many-arguments
     # https://pypi.org/project/paho-mqtt/
     mqtt_client = _init_mqtt_client(
-        mqtt_host=mqtt_host,
-        mqtt_port=mqtt_port,
-        mqtt_disable_tls=mqtt_disable_tls,
-        mqtt_username=mqtt_username,
-        mqtt_password=mqtt_password,
+        host=mqtt_host,
+        port=mqtt_port,
+        disable_tls=mqtt_disable_tls,
+        username=mqtt_username,
+        password=mqtt_password,
     )
     # TODO home assistant discovery
     temperature_topic = mqtt_topic_prefix + "/temperature-degrees-celsius"

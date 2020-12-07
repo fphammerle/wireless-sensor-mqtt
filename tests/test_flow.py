@@ -77,11 +77,11 @@ def test__run(
                 homeassistant_node_id="ft017th-living-room",
             )
     init_mqtt_client_mock.assert_called_once_with(
-        mqtt_host=mqtt_host,
-        mqtt_port=mqtt_port,
-        mqtt_disable_tls=mqtt_disable_tls,
-        mqtt_username=mqtt_username,
-        mqtt_password=mqtt_password,
+        host=mqtt_host,
+        port=mqtt_port,
+        disable_tls=mqtt_disable_tls,
+        username=mqtt_username,
+        password=mqtt_password,
     )
     publish_calls_args = mqtt_client_mock.publish.call_args_list
     assert len(publish_calls_args) == 2 * 2
