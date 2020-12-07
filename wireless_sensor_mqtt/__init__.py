@@ -21,6 +21,7 @@ import typing
 import pathlib
 
 import paho.mqtt.client
+import wireless_sensor
 
 _MQTT_DEFAULT_PORT = 1883
 _MQTT_DEFAULT_TLS_PORT = 8883
@@ -42,6 +43,7 @@ def _mqtt_on_connect(
 
 
 def _init_mqtt_client(
+    # TODO remove "mqtt_" prefix
     mqtt_host: str,
     mqtt_port: int,
     mqtt_username: typing.Optional[str],
@@ -74,7 +76,7 @@ def _run(
     mqtt_password: typing.Optional[str],
     mqtt_topic_prefix: str,
     homeassistant_discovery_prefix: str,
-    homeassistant_node_id: str,
+    homeassistant_node_id: str,  # TODO validate
     mqtt_disable_tls: bool = False,
 ) -> None:
     # pylint: disable=too-many-arguments
@@ -86,8 +88,20 @@ def _run(
         mqtt_username=mqtt_username,
         mqtt_password=mqtt_password,
     )
-    # TODO continue
-    print(mqtt_client)
+    # TODO home assistant discovery
+    temperature_topic = mqtt_topic_prefix + "/temperature-degrees-celsius"
+    humidity_topic = mqtt_topic_prefix + "/relative-humidity"
+    for measurement in wireless_sensor.FT017TH().receive():
+        mqtt_client.publish(
+            topic=temperature_topic,
+            payload=str(measurement.temperature_degrees_celsius),
+            retain=False,
+        )
+        mqtt_client.publish(
+            topic=humidity_topic,
+            payload=str(measurement.relative_humidity),
+            retain=False,
+        )
 
 
 def _main() -> None:
