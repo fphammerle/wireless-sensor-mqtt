@@ -16,6 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+import json
 import logging
 import pathlib
 import random
@@ -82,6 +83,56 @@ def _mock_measurement() -> wireless_sensor.Measurement:
     )
 
 
+def _publish_homeassistant_discovery_config(
+    *,
+    mqtt_client: paho.mqtt.client.Client,
+    homeassistant_discovery_prefix: str,
+    homeassistant_node_id: str,
+    temperature_topic: str,
+    humidity_topic: str,
+) -> None:
+    # topic format: <discovery_prefix>/<component>/[<node_id>/]<object_id>/config
+    # https://www.home-assistant.io/docs/mqtt/discovery/
+    for object_id, state_topic, unit, name_suffix in zip(
+        ("temperature-degrees-celsius", "relative-humidity-percent"),
+        (temperature_topic, humidity_topic),
+        ("°C", "%"),
+        ("temperature", "relative humidity"),
+    ):
+        discovery_topic = "/".join(
+            (
+                homeassistant_discovery_prefix,
+                "sensor",
+                homeassistant_node_id,
+                object_id,
+                "config",
+            )
+        )
+        unique_id = "/".join(
+            (
+                "fphammerle",
+                "wireless-sensor-mqtt",
+                "FT017TH",
+                homeassistant_node_id,
+                object_id,
+            )
+        )
+        # https://www.home-assistant.io/integrations/binary_sensor.mqtt/#configuration-variables
+        config = {
+            "unique_id": unique_id,
+            # friendly_name & template for default entity_id
+            "name": "{} {}".format(homeassistant_node_id, name_suffix),
+            "state_topic": state_topic,
+            "unit_of_measurement": unit,
+            "expire_after": 60 * 10,  # seconds
+            "device": {"model": "FT017TH"},
+        }
+        _LOGGER.debug("publishing home assistant config on %s", discovery_topic)
+        mqtt_client.publish(
+            topic=discovery_topic, payload=json.dumps(config), retain=True
+        )
+
+
 def _run(
     *,
     mqtt_host: str,
@@ -103,9 +154,9 @@ def _run(
         username=mqtt_username,
         password=mqtt_password,
     )
-    # TODO home assistant discovery
     temperature_topic = mqtt_topic_prefix + "/temperature-degrees-celsius"
-    humidity_topic = mqtt_topic_prefix + "/relative-humidity"
+    humidity_topic = mqtt_topic_prefix + "/relative-humidity-percent"
+    # https://www.home-assistant.io/docs/mqtt/discovery/
     if mock_measurements:
         logging.warning("publishing %d mocked measurements", _MEASUREMENT_MOCKS_COUNT)
         measurement_iter = map(
@@ -113,15 +164,27 @@ def _run(
         )
     else:
         measurement_iter = wireless_sensor.FT017TH().receive()
+    homeassistant_discover_config_published = False
     for measurement in measurement_iter:
+        if not homeassistant_discover_config_published:
+            _publish_homeassistant_discovery_config(
+                mqtt_client=mqtt_client,
+                homeassistant_discovery_prefix=homeassistant_discovery_prefix,
+                homeassistant_node_id=homeassistant_node_id,
+                temperature_topic=temperature_topic,
+                humidity_topic=humidity_topic,
+            )
+            homeassistant_discover_config_published = True
         mqtt_client.publish(
             topic=temperature_topic,
-            payload=str(measurement.temperature_degrees_celsius),
+            payload="{:.02f}".format(measurement.temperature_degrees_celsius),
             retain=False,
         )
         mqtt_client.publish(
             topic=humidity_topic,
-            payload=str(measurement.relative_humidity),
+            # > unit_of_measurement: '%'
+            # https://www.home-assistant.io/integrations/sensor.mqtt/#temperature-and-humidity-sensors
+            payload="{:.02f}".format(measurement.relative_humidity * 100),
             retain=False,
         )
 
