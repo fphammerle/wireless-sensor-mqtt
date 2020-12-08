@@ -5,6 +5,9 @@ networks:
     driver_opts:
       com.docker.network.bridge.name: wireless-sensor
 
+#volumes:
+#  config:
+
 services:
   broker:
     image: docker.io/eclipse-mosquitto:latest
@@ -13,6 +16,25 @@ services:
     #ports: ['127.0.0.1:1883:1883/tcp']
     cap_drop: [all]
     security_opt: [no-new-privileges]
+    cpus: 0.4
+    mem_limit: 32M
+  client:
+    build: .
+    image: fphammerle/wireless-sensor-mqtt
+    #volumes:
+    #- config:/etc/wireless-sensor-mqtt:ro
+    command: wireless-sensor-mqtt
+      --mqtt-host broker
+      --mqtt-disable-tls
+    #  --mqtt-username raspberrypi
+    #  --mqtt-password-file /etc/wireless-sensor-mqtt/mqtt-password
+    #  --mock-measurements
+    #  --debug
+    read_only: true
+    cap_drop: [all]
+    security_opt:
+    - no-new-privileges
+    # docker-compose >=2.2,<3
     cpus: 0.4
     mem_limit: 32M
 

@@ -1,0 +1,10 @@
+*
+# setuptools_scm
+!.git/
+.git/index
+!COPYING
+!Pipfile
+!Pipfile.lock
+!README.md
+!setup.py
+!wireless_sensor_mqtt
