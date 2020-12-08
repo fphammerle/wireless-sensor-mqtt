@@ -30,6 +30,7 @@ services:
     #  --mqtt-password-file /etc/wireless-sensor-mqtt/mqtt-password
     #  --mock-measurements
     #  --debug
+    devices: [/dev/spidev0.0]
     read_only: true
     cap_drop: [all]
     security_opt:

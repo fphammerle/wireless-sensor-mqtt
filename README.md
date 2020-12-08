@@ -68,7 +68,8 @@ When using a custom `discovery_prefix`, run `wireless-sensor-mqtt --homeassistan
 Pre-built docker images are available at https://hub.docker.com/r/fphammerle/wireless-sensor-mqtt/tags
 
 ```sh
-$ sudo docker run --name wireless_sensor_mqtt fphammerle/wireless-sensor-mqtt \
+$ sudo docker run --name wireless_sensor_mqtt \
+    --device /dev/spidev0.0 fphammerle/wireless-sensor-mqtt \
     wireless-sensor-mqtt --mqtt-host HOSTNAME_OR_IP_ADDRESS …
 ```
 
