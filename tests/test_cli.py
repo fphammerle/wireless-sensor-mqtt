@@ -270,6 +270,17 @@ def test__main_homeassistant_node_id(args, node_id):
 
 
 @pytest.mark.parametrize(
+    "args", [["--homeassistant-node-id", "no pe"], ["--homeassistant-node-id", ""]]
+)
+def test__main_homeassistant_node_id_invalid(args):
+    with unittest.mock.patch(
+        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + args
+    ):
+        with pytest.raises(ValueError):
+            wireless_sensor_mqtt._main()
+
+
+@pytest.mark.parametrize(
     ("additional_argv", "root_log_level"),
     [([], logging.INFO), (["--debug"], logging.DEBUG)],
 )

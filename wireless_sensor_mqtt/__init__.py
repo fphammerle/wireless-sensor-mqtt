@@ -26,6 +26,8 @@ import typing
 import paho.mqtt.client
 import wireless_sensor
 
+import wireless_sensor_mqtt._homeassistant
+
 _MQTT_DEFAULT_PORT = 1883
 _MQTT_DEFAULT_TLS_PORT = 8883
 _MEASUREMENT_MOCKS_COUNT = 3
@@ -142,7 +144,7 @@ def _run(
     mqtt_password: typing.Optional[str],
     mqtt_topic_prefix: str,
     homeassistant_discovery_prefix: str,
-    homeassistant_node_id: str,  # TODO validate
+    homeassistant_node_id: str,
     mock_measurements: bool,
 ) -> None:
     # pylint: disable=too-many-arguments
@@ -258,6 +260,18 @@ def _main() -> None:
             mqtt_password = mqtt_password[:-1]
     else:
         mqtt_password = args.mqtt_password
+    # pylint: disable=protected-access; false positive for validate_node_id
+    if not wireless_sensor_mqtt._homeassistant.validate_node_id(
+        args.homeassistant_node_id
+    ):
+        raise ValueError(
+            "invalid home assistant node id {!r} (length >= 1, allowed characters: {})".format(
+                args.homeassistant_node_id,
+                # pylint: disable=protected-access; false positive
+                wireless_sensor_mqtt._homeassistant.NODE_ID_ALLOWED_CHARS,
+            )
+            + "\nchange argument of --homeassistant-node-id"
+        )
     _run(
         mqtt_host=args.mqtt_host,
         mqtt_port=mqtt_port,
