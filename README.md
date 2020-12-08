@@ -5,6 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/fphammerle/wireless-sensor-mqtt/badge.svg?branch=master)](https://coveralls.io/github/fphammerle/wireless-sensor-mqtt?branch=master)
 [![Last Release](https://img.shields.io/pypi/v/wireless-sensor-mqtt.svg)](https://pypi.org/project/wireless-sensor-mqtt/#history)
 [![Compatible Python Versions](https://img.shields.io/pypi/pyversions/wireless-sensor-mqtt.svg)](https://pypi.org/project/wireless-sensor-mqtt/)
+[![DOI](https://zenodo.org/badge/319636053.svg)](https://zenodo.org/badge/latestdoi/319636053)
 
 MQTT client reporting measurements of FT017TH wireless thermo/hygrometers
 
