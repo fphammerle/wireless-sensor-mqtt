@@ -67,8 +67,8 @@ def test__publish_homeassistant_discovery_config(
         "model": "FT017TH",
     }
     assert json.loads(publish_calls_args[0][1]["payload"]) == {
-        "unique_id": "fphammerle/wireless-sensor-mqtt/FT017TH/{}/temperature-degrees-celsius".format(
-            homeassistant_node_id
+        "unique_id": "fphammerle/wireless-sensor-mqtt/FT017TH/{}/{}".format(
+            homeassistant_node_id, "temperature-degrees-celsius"
         ),
         "name": "{} temperature".format(homeassistant_node_id),
         "state_topic": mqtt_topic_prefix + "/temp",

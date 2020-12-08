@@ -18,6 +18,7 @@
 import logging
 import unittest.mock
 
+import paho.mqtt.client
 import pytest
 
 import wireless_sensor_mqtt
@@ -122,3 +123,38 @@ def test__init_mqtt_client_authentication_missing_username(mqtt_host, mqtt_port)
                 username=None,
                 password="secret",
             )
+
+
+def test__mqtt_publish(caplog):
+    client_mock = unittest.mock.MagicMock()
+    msg_info_mock = unittest.mock.MagicMock()
+    msg_info_mock.rc = paho.mqtt.client.MQTT_ERR_SUCCESS
+    client_mock.publish.return_value = msg_info_mock
+    with caplog.at_level(logging.INFO):
+        wireless_sensor_mqtt._mqtt_publish(
+            client=client_mock, topic="/some/topic", message="test", retain=False
+        )
+    client_mock.publish.assert_called_once_with(
+        topic="/some/topic", message="test", retain=False
+    )
+    msg_info_mock.wait_for_publish.assert_called_once_with()
+    assert caplog.record_tuples == []
+
+
+def test__mqtt_publish_fail(caplog):
+    client_mock = unittest.mock.MagicMock()
+    msg_info_mock = unittest.mock.MagicMock()
+    msg_info_mock.rc = 42
+    client_mock.publish.return_value = msg_info_mock
+    with caplog.at_level(logging.ERROR):
+        wireless_sensor_mqtt._mqtt_publish(
+            client=client_mock, topic="/some/topic", message="test", retain=False
+        )
+    msg_info_mock.wait_for_publish.assert_called_once_with()
+    assert caplog.record_tuples == [
+        (
+            "wireless_sensor_mqtt",
+            logging.ERROR,
+            "failed to publish on topic /some/topic (return code 42)",
+        )
+    ]

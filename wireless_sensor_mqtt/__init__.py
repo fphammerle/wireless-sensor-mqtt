@@ -85,6 +85,17 @@ def _mock_measurement() -> wireless_sensor.Measurement:
     )
 
 
+def _mqtt_publish(*, client: paho.mqtt.client.Client, topic: str, **kwargs) -> None:
+    msg_info = client.publish(
+        topic=topic, **kwargs
+    )  # type: paho.mqtt.client.MQTTMessageInfo
+    msg_info.wait_for_publish()
+    if msg_info.rc != paho.mqtt.client.MQTT_ERR_SUCCESS:
+        _LOGGER.error(
+            "failed to publish on topic %s (return code %d)", topic, msg_info.rc
+        )
+
+
 def _publish_homeassistant_discovery_config(
     *,
     mqtt_client: paho.mqtt.client.Client,
@@ -142,8 +153,11 @@ def _publish_homeassistant_discovery_config(
             "device": device_attrs,
         }
         _LOGGER.debug("publishing home assistant config on %s", discovery_topic)
-        mqtt_client.publish(
-            topic=discovery_topic, payload=json.dumps(config), retain=True
+        _mqtt_publish(
+            client=mqtt_client,
+            topic=discovery_topic,
+            payload=json.dumps(config),
+            retain=True,
         )
 
 
@@ -193,12 +207,14 @@ def _run(
                 humidity_topic=humidity_topic,
             )
             homeassistant_discover_config_published = True
-        mqtt_client.publish(
+        _mqtt_publish(
+            client=mqtt_client,
             topic=temperature_topic,
             payload="{:.02f}".format(measurement.temperature_degrees_celsius),
             retain=False,
         )
-        mqtt_client.publish(
+        _mqtt_publish(
+            client=mqtt_client,
             topic=humidity_topic,
             # > unit_of_measurement: '%'
             # https://www.home-assistant.io/integrations/sensor.mqtt/#temperature-and-humidity-sensors
