@@ -168,6 +168,7 @@ def _run(
         measurement_iter = wireless_sensor.FT017TH().receive()
     homeassistant_discover_config_published = False
     for measurement in measurement_iter:
+        logging.debug("received %s", measurement)
         if not homeassistant_discover_config_published:
             _publish_homeassistant_discovery_config(
                 mqtt_client=mqtt_client,
