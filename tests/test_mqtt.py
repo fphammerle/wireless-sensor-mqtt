@@ -60,6 +60,7 @@ def test__init_mqtt_client(caplog, host, port):
     # connect callback
     caplog.clear()
     mqtt_client.socket().getpeername.return_value = (host, port)
+    # pylint: disable=not-callable; false positive
     mqtt_client.on_connect(mqtt_client, mqtt_client._userdata, {}, 0)
     assert caplog.records[0].levelno == logging.DEBUG
     assert caplog.records[0].message == "connected to MQTT broker {}:{}".format(
