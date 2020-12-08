@@ -103,8 +103,10 @@ def _publish_homeassistant_discovery_config(
         "identifiers": ["FT017TH/{}".format(homeassistant_node_id)],
         "model": "FT017TH",
     }
-    for object_id, state_topic, unit, name_suffix in zip(
+    for object_id, device_class, state_topic, unit, name_suffix in zip(
         ("temperature-degrees-celsius", "relative-humidity-percent"),
+        # https://www.home-assistant.io/integrations/sensor/#device-class
+        ("temperature", "humidity"),
         (temperature_topic, humidity_topic),
         ("°C", "%"),
         ("temperature", "relative humidity"),
@@ -131,6 +133,7 @@ def _publish_homeassistant_discovery_config(
         # https://github.com/home-assistant/core/blob/0.117.5/homeassistant/components/mqtt/sensor.py#L50
         config = {
             "unique_id": unique_id,
+            "device_class": device_class,
             # friendly_name & template for default entity_id
             "name": "{} {}".format(homeassistant_node_id, name_suffix),
             "state_topic": state_topic,
