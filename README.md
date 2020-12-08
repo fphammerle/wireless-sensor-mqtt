@@ -57,7 +57,7 @@ wireless-sensor-mqtt --mqtt-username me --mqtt-password-file /var/lib/secrets/mq
 [Home Assistant](https://www.home-assistant.io/) will detect two new sensors automatically,
 if connected to the same MQTT broker
 and [MQTT discovery](https://www.home-assistant.io/docs/mqtt/discovery/) is enabled
-(enabled by default since version ).
+(enabled by default since version [0.117.0](https://github.com/home-assistant/core/commit/306ee305747a4f7ba758352503f99f221f0ad85a)).
 
 ![homeassistant: discovered sensors](docs/homeassistant/developer-tools-states-v0.117.5-20201208.png)
 
@@ -65,7 +65,7 @@ When using a custom `discovery_prefix`, run `wireless-sensor-mqtt --homeassistan
 
 ## Docker 🐳
 
-Pre-built docker image are available at https://hub.docker.com/r/fphammerle/wireless-sensor-mqtt/tags
+Pre-built docker images are available at https://hub.docker.com/r/fphammerle/wireless-sensor-mqtt/tags
 
 ```sh
 $ sudo docker run --name wireless_sensor_mqtt fphammerle/wireless-sensor-mqtt \
