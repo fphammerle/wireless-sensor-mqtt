@@ -108,3 +108,17 @@ def test__init_mqtt_client_authentication(host, port, username, password):
         assert mqtt_client._password.decode() == password
     else:
         assert mqtt_client._password is None
+
+
+@pytest.mark.parametrize("mqtt_host", ["mqtt-broker.local"])
+@pytest.mark.parametrize("mqtt_port", [1833])
+def test__init_mqtt_client_authentication_missing_username(mqtt_host, mqtt_port):
+    with unittest.mock.patch("paho.mqtt.client.Client"):
+        with pytest.raises(ValueError, match=r"^Missing MQTT username$"):
+            wireless_sensor_mqtt._init_mqtt_client(
+                host=mqtt_host,
+                port=mqtt_port,
+                disable_tls=False,
+                username=None,
+                password="secret",
+            )
