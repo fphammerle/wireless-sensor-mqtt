@@ -158,6 +158,9 @@ def _run(
     )
     temperature_topic = mqtt_topic_prefix + "/temperature-degrees-celsius"
     humidity_topic = mqtt_topic_prefix + "/relative-humidity-percent"
+    logging.debug(
+        "publishing measurements on topics %r and %r", temperature_topic, humidity_topic
+    )
     # https://www.home-assistant.io/docs/mqtt/discovery/
     if mock_measurements:
         logging.warning("publishing %d mocked measurements", _MEASUREMENT_MOCKS_COUNT)
