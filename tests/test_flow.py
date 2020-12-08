@@ -183,7 +183,7 @@ def test__run(
 
 
 @pytest.mark.parametrize("mqtt_topic_prefix", ["ft017th"])
-def test__run_mock_measurements(mqtt_topic_prefix,):
+def test__run_mock_measurements(mqtt_topic_prefix):
     # pylint: disable=too-many-arguments
     mqtt_client_mock = unittest.mock.MagicMock()
     with unittest.mock.patch(

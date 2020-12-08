@@ -50,7 +50,7 @@ def _mqtt_on_connect(
 
 
 def _init_mqtt_client(
-    *,
+    # *, SyntaxError on python3.5
     host: str,
     port: int,
     username: typing.Optional[str],
@@ -97,7 +97,7 @@ def _mqtt_publish(*, client: paho.mqtt.client.Client, topic: str, **kwargs) -> N
 
 
 def _publish_homeassistant_discovery_config(
-    *,
+    # *, SyntaxError on python3.5
     mqtt_client: paho.mqtt.client.Client,
     homeassistant_discovery_prefix: str,
     homeassistant_node_id: str,
@@ -162,7 +162,7 @@ def _publish_homeassistant_discovery_config(
 
 
 def _run(
-    *,
+    # *, SyntaxError on python3.5
     mqtt_host: str,
     mqtt_port: int,
     mqtt_disable_tls: bool,
