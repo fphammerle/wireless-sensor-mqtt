@@ -95,6 +95,14 @@ def _publish_homeassistant_discovery_config(
 ) -> None:
     # topic format: <discovery_prefix>/<component>/[<node_id>/]<object_id>/config
     # https://www.home-assistant.io/docs/mqtt/discovery/
+    # https://github.com/home-assistant/core/blob/0.117.5/homeassistant/components/mqtt/__init__.py#L274
+    device_attrs = {
+        # > voluptuous.error.MultipleInvalid: Device must have at least one id
+        # > entifying value in 'identifiers' and/or 'connections'
+        # > for dictionary value @ data['device']
+        "identifiers": ["FT017TH/{}".format(homeassistant_node_id)],
+        "model": "FT017TH",
+    }
     for object_id, state_topic, unit, name_suffix in zip(
         ("temperature-degrees-celsius", "relative-humidity-percent"),
         (temperature_topic, humidity_topic),
@@ -119,7 +127,8 @@ def _publish_homeassistant_discovery_config(
                 object_id,
             )
         )
-        # https://www.home-assistant.io/integrations/binary_sensor.mqtt/#configuration-variables
+        # https://www.home-assistant.io/integrations/sensor.mqtt/#configuration-variables
+        # https://github.com/home-assistant/core/blob/0.117.5/homeassistant/components/mqtt/sensor.py#L50
         config = {
             "unique_id": unique_id,
             # friendly_name & template for default entity_id
@@ -127,7 +136,7 @@ def _publish_homeassistant_discovery_config(
             "state_topic": state_topic,
             "unit_of_measurement": unit,
             "expire_after": 60 * 10,  # seconds
-            "device": {"model": "FT017TH"},
+            "device": device_attrs,
         }
         _LOGGER.debug("publishing home assistant config on %s", discovery_topic)
         mqtt_client.publish(

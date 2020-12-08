@@ -62,6 +62,10 @@ def test__publish_homeassistant_discovery_config(
     ] == "homeassistant/sensor/{}/relative-humidity-percent/config".format(
         homeassistant_node_id
     )
+    device_attrs = {
+        "identifiers": ["FT017TH/" + homeassistant_node_id],
+        "model": "FT017TH",
+    }
     assert json.loads(publish_calls_args[0][1]["payload"]) == {
         "unique_id": "fphammerle/wireless-sensor-mqtt/FT017TH/{}/temperature-degrees-celsius".format(
             homeassistant_node_id
@@ -70,7 +74,7 @@ def test__publish_homeassistant_discovery_config(
         "state_topic": mqtt_topic_prefix + "/temp",
         "unit_of_measurement": "°C",
         "expire_after": 600,
-        "device": {"model": "FT017TH"},
+        "device": device_attrs,
     }
     assert json.loads(publish_calls_args[1][1]["payload"]) == {
         "unique_id": "fphammerle/wireless-sensor-mqtt/FT017TH/{}/relative-humidity-percent".format(
@@ -80,7 +84,7 @@ def test__publish_homeassistant_discovery_config(
         "state_topic": mqtt_topic_prefix + "/rel-humidity",
         "unit_of_measurement": "%",
         "expire_after": 600,
-        "device": {"model": "FT017TH"},
+        "device": device_attrs,
     }
 
 
