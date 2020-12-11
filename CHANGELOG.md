@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - upgrade `wireless-sensor` library to acquire `flock` on SPI device file
 
+### Added
+- option `--unlock-spi-device` to release the `flock` from the SPI device file
+  after configuring the transceiver
+
 ### [0.1.1] - 2020-12-08
 ### Fixed
 - syntax errors on python3.5

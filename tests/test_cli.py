@@ -310,3 +310,17 @@ def test__main_mock_measurements(additional_argv, mock_measurements):
     ):
         wireless_sensor_mqtt._main()
     assert main_mock.call_args[1]["mock_measurements"] == mock_measurements
+
+
+@pytest.mark.parametrize(
+    ("additional_argv", "unlock_spi_device"),
+    [([], False), (["--unlock-spi-device"], True)],
+)
+def test__main_unlock_spi_device(additional_argv, unlock_spi_device):
+    with unittest.mock.patch(
+        "wireless_sensor_mqtt._run"
+    ) as main_mock, unittest.mock.patch(
+        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
+    ):
+        wireless_sensor_mqtt._main()
+    assert main_mock.call_args[1]["unlock_spi_device"] == unlock_spi_device

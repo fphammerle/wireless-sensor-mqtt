@@ -276,6 +276,13 @@ def _main() -> None:
         action="store_true",
         help="publish random values to test MQTT connection",
     )
+    # https://github.com/fphammerle/wireless-sensor/blob/v0.3.0/wireless_sensor/_cli.py#L28
+    argparser.add_argument(
+        "--unlock-spi-device",
+        action="store_true",
+        help="Release flock from SPI device file after configuring the transceiver."
+        " Useful if another process (infrequently) accesses the transceiver simultaneously.",
+    )
     argparser.add_argument("--debug", action="store_true", help="increase verbosity")
     args = argparser.parse_args()
     logging.basicConfig(
@@ -321,5 +328,5 @@ def _main() -> None:
         homeassistant_discovery_prefix=args.homeassistant_discovery_prefix,
         homeassistant_node_id=args.homeassistant_node_id,
         mock_measurements=args.mock_measurements,
-        unlock_spi_device=False,
+        unlock_spi_device=args.unlock_spi_device,
     )
