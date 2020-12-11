@@ -69,7 +69,7 @@ setuptools.setup(
         "console_scripts": ["wireless-sensor-mqtt = wireless_sensor_mqtt:_main"]
     },
     install_requires=[
-        "wireless-sensor>=0.2.0,<0.3",  # >=0.2.0 for Measurement type
+        "wireless-sensor>=0.3.0,<0.4",  # >=0.3.0 for FT017TH(unlock_spi_device=True)
         "paho-mqtt<2",
     ],
     setup_requires=["setuptools_scm"],

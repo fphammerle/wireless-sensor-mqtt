@@ -104,6 +104,9 @@ def _publish_homeassistant_discovery_config(
     temperature_topic: str,
     humidity_topic: str,
 ) -> None:
+    """
+    https://www.home-assistant.io/docs/mqtt/discovery/
+    """
     # topic format: <discovery_prefix>/<component>/[<node_id>/]<object_id>/config
     # https://www.home-assistant.io/docs/mqtt/discovery/
     # https://github.com/home-assistant/core/blob/0.117.5/homeassistant/components/mqtt/__init__.py#L274
@@ -161,6 +164,15 @@ def _publish_homeassistant_discovery_config(
         )
 
 
+def _measurement_iter(
+    mock_measurements: bool, unlock_spi_device: bool
+) -> typing.Iterator[wireless_sensor.Measurement]:
+    if mock_measurements:
+        logging.warning("publishing %d mocked measurements", _MEASUREMENT_MOCKS_COUNT)
+        return map(lambda _: _mock_measurement(), range(_MEASUREMENT_MOCKS_COUNT))
+    return wireless_sensor.FT017TH(unlock_spi_device=unlock_spi_device).receive()
+
+
 def _run(
     # *, SyntaxError on python3.5
     mqtt_host: str,
@@ -172,6 +184,7 @@ def _run(
     homeassistant_discovery_prefix: str,
     homeassistant_node_id: str,
     mock_measurements: bool,
+    unlock_spi_device: bool,
 ) -> None:
     # pylint: disable=too-many-arguments
     # https://pypi.org/project/paho-mqtt/
@@ -187,16 +200,10 @@ def _run(
     logging.debug(
         "publishing measurements on topics %r and %r", temperature_topic, humidity_topic
     )
-    # https://www.home-assistant.io/docs/mqtt/discovery/
-    if mock_measurements:
-        logging.warning("publishing %d mocked measurements", _MEASUREMENT_MOCKS_COUNT)
-        measurement_iter = map(
-            lambda _: _mock_measurement(), range(_MEASUREMENT_MOCKS_COUNT)
-        )
-    else:
-        measurement_iter = wireless_sensor.FT017TH().receive()
     homeassistant_discover_config_published = False
-    for measurement in measurement_iter:
+    for measurement in _measurement_iter(
+        mock_measurements=mock_measurements, unlock_spi_device=unlock_spi_device
+    ):
         logging.debug("received %s", measurement)
         if not homeassistant_discover_config_published:
             _publish_homeassistant_discovery_config(
@@ -314,4 +321,5 @@ def _main() -> None:
         homeassistant_discovery_prefix=args.homeassistant_discovery_prefix,
         homeassistant_node_id=args.homeassistant_node_id,
         mock_measurements=args.mock_measurements,
+        unlock_spi_device=False,
     )

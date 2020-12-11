@@ -102,6 +102,7 @@ def test__publish_homeassistant_discovery_config(
 )
 @pytest.mark.parametrize("homeassistant_discovery_prefix", ["homeassistant"])
 @pytest.mark.parametrize("homeassistant_node_id", ["ft017th-living-room"])
+@pytest.mark.parametrize("unlock_spi_device", [True, False])
 def test__run(
     mqtt_host,
     mqtt_port,
@@ -111,10 +112,14 @@ def test__run(
     mqtt_topic_prefix,
     homeassistant_discovery_prefix,
     homeassistant_node_id,
+    unlock_spi_device,
 ):
     # pylint: disable=too-many-arguments
-    with unittest.mock.patch("wireless_sensor.FT017TH") as sensor_class_mock:
-        sensor_class_mock().receive.side_effect = [
+    with unittest.mock.patch(
+        "wireless_sensor.FT017TH.__init__", return_value=None
+    ) as sensor_init_mock, unittest.mock.patch(
+        "wireless_sensor.FT017TH.receive",
+        side_effect=[
             [
                 wireless_sensor.Measurement(
                     decoding_timestamp=datetime.datetime(2020, 12, 7, 18, 5, 1),
@@ -127,7 +132,8 @@ def test__run(
                     relative_humidity=0.401234567,
                 ),
             ]
-        ]
+        ],
+    ):
         mqtt_client_mock = unittest.mock.MagicMock()
         with unittest.mock.patch(
             "wireless_sensor_mqtt._init_mqtt_client"
@@ -145,6 +151,7 @@ def test__run(
                 homeassistant_discovery_prefix=homeassistant_discovery_prefix,
                 homeassistant_node_id=homeassistant_node_id,
                 mock_measurements=False,
+                unlock_spi_device=unlock_spi_device,
             )
     init_mqtt_client_mock.assert_called_once_with(
         host=mqtt_host,
@@ -153,6 +160,7 @@ def test__run(
         username=mqtt_username,
         password=mqtt_password,
     )
+    sensor_init_mock.assert_called_once_with(unlock_spi_device=unlock_spi_device)
     hass_config_mock.assert_called_once_with(
         mqtt_client=mqtt_client_mock,
         homeassistant_discovery_prefix=homeassistant_discovery_prefix,
@@ -204,6 +212,7 @@ def test__run_mock_measurements(mqtt_topic_prefix):
             homeassistant_discovery_prefix="homeassistant",
             homeassistant_node_id="ft017th-living-room",
             mock_measurements=True,
+            unlock_spi_device=False,
         )
     assert init_mqtt_client_mock.call_count == 1
     assert hass_config_mock.call_count == 1

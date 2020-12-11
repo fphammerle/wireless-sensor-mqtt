@@ -157,6 +157,7 @@ def test__main(
         homeassistant_discovery_prefix="homeassistant",
         homeassistant_node_id="FT017TH",
         mock_measurements=False,
+        unlock_spi_device=False,
     )
 
 
@@ -204,6 +205,7 @@ def test__main_password_file(tmpdir, password_file_content, expected_password):
         homeassistant_discovery_prefix="homeassistant",
         homeassistant_node_id="FT017TH",
         mock_measurements=False,
+        unlock_spi_device=False,
     )
 
 
