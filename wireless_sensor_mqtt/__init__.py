@@ -85,9 +85,12 @@ def _mock_measurement() -> wireless_sensor.Measurement:
     )
 
 
-def _mqtt_publish(*, client: paho.mqtt.client.Client, topic: str, **kwargs) -> None:
+def _mqtt_publish(
+    *, client: paho.mqtt.client.Client, topic: str, payload: str, **kwargs
+) -> None:
+    _LOGGER.debug("publishing mqtt msg: topic=%s payload=%s", topic, payload)
     msg_info = client.publish(
-        topic=topic, **kwargs
+        topic=topic, payload=payload, **kwargs
     )  # type: paho.mqtt.client.MQTTMessageInfo
     msg_info.wait_for_publish()
     if msg_info.rc != paho.mqtt.client.MQTT_ERR_SUCCESS:
@@ -155,7 +158,6 @@ def _publish_homeassistant_discovery_config(
             "expire_after": 60 * 10,  # seconds
             "device": device_attrs,
         }
-        _LOGGER.debug("publishing home assistant config on %s", discovery_topic)
         _mqtt_publish(
             client=mqtt_client,
             topic=discovery_topic,
@@ -197,14 +199,14 @@ def _run(
     )
     temperature_topic = mqtt_topic_prefix + "/temperature-degrees-celsius"
     humidity_topic = mqtt_topic_prefix + "/relative-humidity-percent"
-    logging.debug(
+    _LOGGER.debug(
         "publishing measurements on topics %r and %r", temperature_topic, humidity_topic
     )
     homeassistant_discover_config_published = False
     for measurement in _measurement_iter(
         mock_measurements=mock_measurements, unlock_spi_device=unlock_spi_device
     ):
-        logging.debug("received %s", measurement)
+        _LOGGER.debug("received %s", measurement)
         if not homeassistant_discover_config_published:
             _publish_homeassistant_discovery_config(
                 mqtt_client=mqtt_client,

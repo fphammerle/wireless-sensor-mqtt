@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - option `--debug-cc1101`
+- log MQTT messages before publishing (debug level)
 
 ## [0.2.0] - 2020-12-11
 ### Changed

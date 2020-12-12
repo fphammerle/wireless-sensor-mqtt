@@ -133,10 +133,10 @@ def test__mqtt_publish(caplog):
     client_mock.publish.return_value = msg_info_mock
     with caplog.at_level(logging.INFO):
         wireless_sensor_mqtt._mqtt_publish(
-            client=client_mock, topic="/some/topic", message="test", retain=False
+            client=client_mock, topic="/some/topic", payload="test", retain=False
         )
     client_mock.publish.assert_called_once_with(
-        topic="/some/topic", message="test", retain=False
+        topic="/some/topic", payload="test", retain=False
     )
     msg_info_mock.wait_for_publish.assert_called_once_with()
     assert caplog.record_tuples == []
@@ -149,7 +149,7 @@ def test__mqtt_publish_fail(caplog):
     client_mock.publish.return_value = msg_info_mock
     with caplog.at_level(logging.ERROR):
         wireless_sensor_mqtt._mqtt_publish(
-            client=client_mock, topic="/some/topic", message="test", retain=False
+            client=client_mock, topic="/some/topic", payload="test", retain=False
         )
     msg_info_mock.wait_for_publish.assert_called_once_with()
     assert caplog.record_tuples == [
