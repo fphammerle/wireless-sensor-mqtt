@@ -299,6 +299,22 @@ def test__main_log_level(additional_argv, root_log_level):
 
 
 @pytest.mark.parametrize(
+    ("additional_argv", "log_level"),
+    [([], logging.INFO), (["--debug-cc1101"], logging.DEBUG)],
+)
+def test__main_log_level_cc1101(additional_argv, log_level):
+    with unittest.mock.patch("wireless_sensor_mqtt._run"), unittest.mock.patch(
+        "logging.basicConfig"
+    ) as logging_basic_config_mock, unittest.mock.patch(
+        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
+    ):
+        wireless_sensor_mqtt._main()
+    assert logging_basic_config_mock.call_count == 1
+    assert logging_basic_config_mock.call_args[1]["level"] == logging.INFO
+    assert logging.getLogger("cc1101").getEffectiveLevel() == log_level
+
+
+@pytest.mark.parametrize(
     ("additional_argv", "mock_measurements"),
     [([], False), (["--mock-measurements"], True)],
 )

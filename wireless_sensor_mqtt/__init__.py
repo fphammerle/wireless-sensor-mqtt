@@ -284,13 +284,20 @@ def _main() -> None:
         " Useful if another process (infrequently) accesses the transceiver simultaneously.",
     )
     argparser.add_argument("--debug", action="store_true", help="increase verbosity")
+    argparser.add_argument(
+        "--debug-cc1101",
+        action="store_true",
+        help="increase verbosity of cc1101 library",
+    )
     args = argparser.parse_args()
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
         format="%(asctime)s:%(levelname)s:%(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S%z",
     )
-    logging.getLogger("cc1101").setLevel(logging.INFO)
+    logging.getLogger("cc1101").setLevel(
+        logging.DEBUG if args.debug_cc1101 else logging.INFO
+    )
     if args.mqtt_port:
         mqtt_port = args.mqtt_port
     elif args.mqtt_disable_tls:
