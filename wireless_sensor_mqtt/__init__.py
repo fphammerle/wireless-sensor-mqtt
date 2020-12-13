@@ -30,6 +30,8 @@ import wireless_sensor_mqtt._homeassistant
 
 _MQTT_DEFAULT_PORT = 1883
 _MQTT_DEFAULT_TLS_PORT = 8883
+_MQTT_PUBLISH_TIMEOUT_SECONDS = 16
+_MQTT_PUBLISH_STATUS_POLL_INTERVAL_SECONDS = 1
 _MEASUREMENT_MOCKS_COUNT = 3
 _MEASUREMENT_MOCKS_INTERVAL_SECONDS = 8
 
@@ -92,10 +94,25 @@ def _mqtt_publish(
     msg_info = client.publish(
         topic=topic, payload=payload, **kwargs
     )  # type: paho.mqtt.client.MQTTMessageInfo
-    msg_info.wait_for_publish()
+    # MQTTMessageInfo.wait_for_publish() calls threading.Condition.wait() without timeout
+    # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L338
+    poll_start_time = time.time()
+    while (
+        not msg_info.is_published()
+        and (time.time() - poll_start_time) < _MQTT_PUBLISH_TIMEOUT_SECONDS
+    ):
+        time.sleep(_MQTT_PUBLISH_STATUS_POLL_INTERVAL_SECONDS)
+    # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L147
     if msg_info.rc != paho.mqtt.client.MQTT_ERR_SUCCESS:
         _LOGGER.error(
             "failed to publish on topic %s (return code %d)", topic, msg_info.rc
+        )
+    elif not msg_info.is_published():
+        _LOGGER.warning(
+            "reached timeout of %d seconds"
+            " while waiting for MQTT message on topic %s to get published",
+            _MQTT_PUBLISH_TIMEOUT_SECONDS,
+            topic,
         )
 
 

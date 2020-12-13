@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import itertools
 import logging
 import unittest.mock
 
@@ -130,28 +131,70 @@ def test__mqtt_publish(caplog):
     client_mock = unittest.mock.MagicMock()
     msg_info_mock = unittest.mock.MagicMock()
     msg_info_mock.rc = paho.mqtt.client.MQTT_ERR_SUCCESS
+    msg_info_mock.is_published.side_effect = [False, False, False, True, True]
     client_mock.publish.return_value = msg_info_mock
-    with caplog.at_level(logging.INFO):
+    with unittest.mock.patch("time.sleep") as sleep_mock, caplog.at_level(
+        logging.DEBUG
+    ):
         wireless_sensor_mqtt._mqtt_publish(
             client=client_mock, topic="/some/topic", payload="test", retain=False
         )
     client_mock.publish.assert_called_once_with(
         topic="/some/topic", payload="test", retain=False
     )
-    msg_info_mock.wait_for_publish.assert_called_once_with()
-    assert caplog.record_tuples == []
+    assert sleep_mock.call_args_list == [unittest.mock.call(1)] * 3
+    assert caplog.record_tuples == [
+        (
+            "wireless_sensor_mqtt",
+            logging.DEBUG,
+            "publishing mqtt msg: topic=/some/topic payload=test",
+        )
+    ]
+
+
+def test__mqtt_publish_timeout(caplog):
+    client_mock = unittest.mock.MagicMock()
+    msg_info_mock = unittest.mock.MagicMock()
+    msg_info_mock.rc = paho.mqtt.client.MQTT_ERR_SUCCESS  # default
+    msg_info_mock.is_published.return_value = False
+    client_mock.publish.return_value = msg_info_mock
+    with unittest.mock.patch(
+        "time.time", side_effect=itertools.count()
+    ), unittest.mock.patch("time.sleep") as sleep_mock, caplog.at_level(logging.DEBUG):
+        wireless_sensor_mqtt._mqtt_publish(
+            client=client_mock, topic="/some/topic", payload="test", retain=False
+        )
+    client_mock.publish.assert_called_once_with(
+        topic="/some/topic", payload="test", retain=False
+    )
+    assert sleep_mock.call_args_list == [unittest.mock.call(1)] * 15
+    assert caplog.record_tuples == [
+        (
+            "wireless_sensor_mqtt",
+            logging.DEBUG,
+            "publishing mqtt msg: topic=/some/topic payload=test",
+        ),
+        (
+            "wireless_sensor_mqtt",
+            logging.WARNING,
+            "reached timeout of 16 seconds while waiting for MQTT message on topic"
+            " /some/topic to get published",
+        ),
+    ]
 
 
 def test__mqtt_publish_fail(caplog):
     client_mock = unittest.mock.MagicMock()
     msg_info_mock = unittest.mock.MagicMock()
     msg_info_mock.rc = 42
+    msg_info_mock.is_published.return_value = False
     client_mock.publish.return_value = msg_info_mock
-    with caplog.at_level(logging.ERROR):
+    with unittest.mock.patch(
+        "time.time", side_effect=itertools.count()
+    ), unittest.mock.patch("time.sleep"), caplog.at_level(logging.ERROR):
         wireless_sensor_mqtt._mqtt_publish(
             client=client_mock, topic="/some/topic", payload="test", retain=False
         )
-    msg_info_mock.wait_for_publish.assert_called_once_with()
     assert caplog.record_tuples == [
         (
             "wireless_sensor_mqtt",

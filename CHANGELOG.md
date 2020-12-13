@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - option `--debug-cc1101`
 - log MQTT messages before publishing (debug level)
 
+### Fixed
+- replace occasionally infinitely blocking `paho.mqtt.client.MQTTMessageInfo.wait_for_publish()`
+  to set timeout when waiting for MQTT message to get published
+
 ## [0.2.0] - 2020-12-11
 ### Changed
 - upgrade `wireless-sensor` library to acquire `flock` on SPI device file
