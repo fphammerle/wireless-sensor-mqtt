@@ -31,3 +31,4 @@ docker-build:
 
 docker-push: docker-build
 	sudo docker push "${DOCKER_IMAGE_NAME}:${DOCKER_TAG}"
+	@echo git tag --sign --message '$(shell sudo docker image inspect --format '{{join .RepoDigests "\n"}}' "${DOCKER_IMAGE_NAME}:${DOCKER_TAG}")' docker/${DOCKER_TAG} $(shell git rev-parse HEAD)
