@@ -85,6 +85,7 @@ def _mqtt_attempt_reconnect(client: paho.mqtt.client.Client) -> None:
     > Use reinitialise() to reset a client to its original state.
     https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L530
     """
+    _LOGGER.debug("reconnecting to MQTT broker")
     try:
         return_code = client.reconnect()
         if return_code != paho.mqtt.client.MQTT_ERR_SUCCESS:
