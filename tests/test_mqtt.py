@@ -17,6 +17,7 @@
 
 import itertools
 import logging
+import socket
 import unittest.mock
 
 import paho.mqtt.client
@@ -127,6 +128,38 @@ def test__init_mqtt_client_authentication_missing_username(mqtt_host, mqtt_port)
             )
 
 
+def test__mqtt_attempt_reconnect(caplog):
+    client_mock = unittest.mock.MagicMock()
+    client_mock.reconnect.return_value = paho.mqtt.client.MQTT_ERR_SUCCESS
+    with caplog.at_level(logging.INFO):
+        wireless_sensor_mqtt._mqtt_attempt_reconnect(client_mock)
+    client_mock.reconnect.assert_called_once_with()
+    assert caplog.record_tuples == []
+
+
+def test__mqtt_attempt_reconnect_unexpected_return_code(caplog):
+    client_mock = unittest.mock.MagicMock()
+    client_mock.reconnect.return_value = 42
+    with caplog.at_level(logging.ERROR):
+        wireless_sensor_mqtt._mqtt_attempt_reconnect(client_mock)
+    assert caplog.record_tuples == [
+        ("wireless_sensor_mqtt", logging.ERROR, "failed to reconnect to MQTT broker")
+    ]
+    assert isinstance(caplog.records[0].exc_info[1], RuntimeError)
+
+
+@pytest.mark.parametrize("exc_type", [socket.error, OSError])
+def test__mqtt_attempt_reconnect_exception(caplog, exc_type):
+    client_mock = unittest.mock.MagicMock()
+    client_mock.reconnect.side_effect = exc_type("test")
+    with caplog.at_level(logging.ERROR):
+        wireless_sensor_mqtt._mqtt_attempt_reconnect(client_mock)
+    assert caplog.record_tuples == [
+        ("wireless_sensor_mqtt", logging.ERROR, "failed to reconnect to MQTT broker")
+    ]
+    assert isinstance(caplog.records[0].exc_info[1], exc_type)
+
+
 def test__mqtt_publish(caplog):
     client_mock = unittest.mock.MagicMock()
     msg_info_mock = unittest.mock.MagicMock()
@@ -202,3 +235,25 @@ def test__mqtt_publish_fail(caplog):
             "failed to publish on topic /some/topic (return code 42)",
         )
     ]
+
+
+def test__mqtt_publish_reconnect():
+    client_mock = unittest.mock.MagicMock()
+    msg_info_mock = unittest.mock.MagicMock()
+    msg_info_mock.rc = paho.mqtt.client.MQTT_ERR_NO_CONN
+    msg_info_mock.is_published.return_value = False
+    client_mock.publish.return_value = msg_info_mock
+    with unittest.mock.patch(
+        "wireless_sensor_mqtt._mqtt_attempt_reconnect"
+    ) as reconnect_mock, unittest.mock.patch(
+        "time.time", side_effect=itertools.count()
+    ), unittest.mock.patch(
+        "time.sleep"
+    ):
+        wireless_sensor_mqtt._mqtt_publish(
+            client=client_mock, topic="/some/topic", payload="test", retain=False
+        )
+    client_mock.publish.assert_called_once_with(
+        topic="/some/topic", payload="test", retain=False
+    )
+    assert reconnect_mock.call_count > 0

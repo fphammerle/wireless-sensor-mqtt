@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - replace occasionally infinitely blocking `paho.mqtt.client.MQTTMessageInfo.wait_for_publish()`
   to set timeout when waiting for MQTT message to get published
+- attempt to reconnect to MQTT broker after losing connection
 
 ## [0.2.0] - 2020-12-11
 ### Changed

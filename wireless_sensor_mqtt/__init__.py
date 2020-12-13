@@ -20,6 +20,7 @@ import json
 import logging
 import pathlib
 import random
+import socket
 import time
 import typing
 
@@ -78,6 +79,25 @@ def _init_mqtt_client(
     return client
 
 
+def _mqtt_attempt_reconnect(client: paho.mqtt.client.Client) -> None:
+    """
+    > Calling connect() or reconnect() will cause the messages to be resent.
+    > Use reinitialise() to reset a client to its original state.
+    https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L530
+    """
+    try:
+        return_code = client.reconnect()
+        if return_code != paho.mqtt.client.MQTT_ERR_SUCCESS:
+            raise RuntimeError(
+                "Client.reconnect() returned expected return code {}".format(
+                    return_code
+                )
+            )
+    # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L1805
+    except (socket.error, OSError, RuntimeError):
+        _LOGGER.error("failed to reconnect to MQTT broker", exc_info=True)
+
+
 def _mock_measurement() -> wireless_sensor.Measurement:
     time.sleep(_MEASUREMENT_MOCKS_INTERVAL_SECONDS)
     return wireless_sensor.Measurement(
@@ -101,6 +121,8 @@ def _mqtt_publish(
         not msg_info.is_published()
         and (time.time() - poll_start_time) < _MQTT_PUBLISH_TIMEOUT_SECONDS
     ):
+        if msg_info.rc == paho.mqtt.client.MQTT_ERR_NO_CONN:
+            _mqtt_attempt_reconnect(client)
         time.sleep(_MQTT_PUBLISH_STATUS_POLL_INTERVAL_SECONDS)
     # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L147
     if msg_info.rc != paho.mqtt.client.MQTT_ERR_SUCCESS:
