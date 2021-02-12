@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=python:3.8-alpine3.13
+ARG BASE_IMAGE=docker.io/python:3.8-alpine3.13
 ARG SOURCE_DIR_PATH=/wireless-sensor-mqtt
 
 
@@ -30,7 +30,7 @@ COPY --chown=build:nobody . $SOURCE_DIR_PATH
 RUN pipenv install --deploy --verbose \
     && pipenv graph \
     && pipenv run pip freeze \
-    && rm -r .git/ $PIPENV_CACHE_DIR \
+    && rm -rf .git/ $PIPENV_CACHE_DIR \
     && chmod -cR a+rX .
 
 # workaround for broken multi-stage copy
