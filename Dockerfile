@@ -14,7 +14,7 @@ RUN apk add --no-cache \
     && adduser -S build
 
 USER build
-RUN pip install --user --no-cache-dir pipenv==2020.6.2
+RUN pip install --user --no-cache-dir pipenv==2021.5.29
 
 ARG SOURCE_DIR_PATH
 COPY --chown=build:nobody Pipfile Pipfile.lock $SOURCE_DIR_PATH/
