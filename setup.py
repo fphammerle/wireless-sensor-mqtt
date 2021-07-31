@@ -58,7 +58,6 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: POSIX :: Linux",
         # .github/workflows/python.yml
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -69,6 +68,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": ["wireless-sensor-mqtt = wireless_sensor_mqtt:_main"]
     },
+    python_requires=">=3.6",
     install_requires=[
         "wireless-sensor>=0.3.0,<0.4",  # >=0.3.0 for FT017TH(unlock_spi_device=True)
         "paho-mqtt<2",

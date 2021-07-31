@@ -22,4 +22,4 @@ NODE_ID_ALLOWED_CHARS = r"a-zA-Z0-9_-"
 
 
 def validate_node_id(node_id: str) -> bool:
-    return re.match(r"^[{}]+$".format(NODE_ID_ALLOWED_CHARS), node_id) is not None
+    return re.match(rf"^[{NODE_ID_ALLOWED_CHARS}]+$", node_id) is not None

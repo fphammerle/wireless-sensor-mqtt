@@ -53,7 +53,7 @@ def _mqtt_on_connect(
 
 
 def _init_mqtt_client(
-    # *, SyntaxError on python3.5
+    *,
     host: str,
     port: int,
     username: typing.Optional[str],
@@ -90,9 +90,7 @@ def _mqtt_attempt_reconnect(client: paho.mqtt.client.Client) -> None:
         return_code = client.reconnect()
         if return_code != paho.mqtt.client.MQTT_ERR_SUCCESS:
             raise RuntimeError(
-                "Client.reconnect() returned expected return code {}".format(
-                    return_code
-                )
+                f"Client.reconnect() returned expected return code {return_code}"
             )
     # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L1805
     except (socket.error, OSError, RuntimeError):
@@ -112,9 +110,9 @@ def _mqtt_publish(
     *, client: paho.mqtt.client.Client, topic: str, payload: str, **kwargs
 ) -> None:
     _LOGGER.debug("publishing mqtt msg: topic=%s payload=%s", topic, payload)
-    msg_info = client.publish(
+    msg_info: paho.mqtt.client.MQTTMessageInfo = client.publish(
         topic=topic, payload=payload, **kwargs
-    )  # type: paho.mqtt.client.MQTTMessageInfo
+    )
     # MQTTMessageInfo.wait_for_publish() calls threading.Condition.wait() without timeout
     # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L338
     poll_start_time = time.time()
@@ -140,7 +138,7 @@ def _mqtt_publish(
 
 
 def _publish_homeassistant_discovery_config(
-    # *, SyntaxError on python3.5
+    *,
     mqtt_client: paho.mqtt.client.Client,
     homeassistant_discovery_prefix: str,
     homeassistant_node_id: str,
@@ -157,7 +155,7 @@ def _publish_homeassistant_discovery_config(
         # > voluptuous.error.MultipleInvalid: Device must have at least one id
         # > entifying value in 'identifiers' and/or 'connections'
         # > for dictionary value @ data['device']
-        "identifiers": ["FT017TH/{}".format(homeassistant_node_id)],
+        "identifiers": [f"FT017TH/{homeassistant_node_id}"],
         "model": "FT017TH",
     }
     for object_id, device_class, state_topic, unit, name_suffix in zip(
@@ -216,7 +214,7 @@ def _measurement_iter(
 
 
 def _run(
-    # *, SyntaxError on python3.5
+    *,
     mqtt_host: str,
     mqtt_port: int,
     mqtt_disable_tls: bool,

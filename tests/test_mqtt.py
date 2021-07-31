@@ -44,14 +44,14 @@ def test__init_mqtt_client(caplog, host, port):
         )
     assert caplog.records[0].levelno == logging.INFO
     assert caplog.records[0].message == (
-        "connecting to MQTT broker {}:{} (TLS enabled)".format(host, port)
+        f"connecting to MQTT broker {host}:{port} (TLS enabled)"
     )
     # correct remote?
-    assert create_socket_mock.call_count == 1
+    create_socket_mock.assert_called_once()
     create_socket_args, _ = create_socket_mock.call_args
     assert create_socket_args[0] == (host, port)
     # ssl enabled?
-    assert ssl_wrap_socket_mock.call_count == 1
+    ssl_wrap_socket_mock.assert_called_once()
     ssl_context = ssl_wrap_socket_mock.call_args[0][0]  # self
     assert ssl_context.check_hostname is True
     assert ssl_wrap_socket_mock.call_args[1]["server_hostname"] == host
@@ -65,9 +65,7 @@ def test__init_mqtt_client(caplog, host, port):
     # pylint: disable=not-callable; false positive
     mqtt_client.on_connect(mqtt_client, mqtt_client._userdata, {}, 0)
     assert caplog.records[0].levelno == logging.DEBUG
-    assert caplog.records[0].message == "connected to MQTT broker {}:{}".format(
-        host, port
-    )
+    assert caplog.records[0].message == f"connected to MQTT broker {host}:{port}"
 
 
 @pytest.mark.parametrize("host", ["mqtt-broker.local"])

@@ -249,7 +249,7 @@ def test__main_homeassistant_discovery_prefix(args, discovery_prefix):
         "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + args
     ):
         wireless_sensor_mqtt._main()
-    assert run_mock.call_count == 1
+    run_mock.assert_called_once()
     assert run_mock.call_args[1]["homeassistant_discovery_prefix"] == discovery_prefix
 
 
@@ -267,7 +267,7 @@ def test__main_homeassistant_node_id(args, node_id):
         "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + args
     ):
         wireless_sensor_mqtt._main()
-    assert run_mock.call_count == 1
+    run_mock.assert_called_once()
     assert run_mock.call_args[1]["homeassistant_node_id"] == node_id
 
 
@@ -293,7 +293,7 @@ def test__main_log_level(additional_argv, root_log_level):
         "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
     ):
         wireless_sensor_mqtt._main()
-    assert logging_basic_config_mock.call_count == 1
+    logging_basic_config_mock.assert_called_once()
     assert logging_basic_config_mock.call_args[1]["level"] == root_log_level
     assert logging.getLogger("cc1101").getEffectiveLevel() == logging.INFO
 
@@ -309,7 +309,7 @@ def test__main_log_level_cc1101(additional_argv, log_level):
         "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
     ):
         wireless_sensor_mqtt._main()
-    assert logging_basic_config_mock.call_count == 1
+    logging_basic_config_mock.assert_called_once()
     assert logging_basic_config_mock.call_args[1]["level"] == logging.INFO
     assert logging.getLogger("cc1101").getEffectiveLevel() == log_level
 

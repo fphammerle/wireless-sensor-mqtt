@@ -20,10 +20,9 @@ import json
 import unittest.mock
 
 import pytest
-
 import wireless_sensor
-import wireless_sensor_mqtt
 
+import wireless_sensor_mqtt
 
 # pylint: disable=protected-access
 
@@ -52,25 +51,22 @@ def test__publish_homeassistant_discovery_config(
         assert not call_args[0]  # positional args
         assert set(call_args[1].keys()) == {"topic", "payload", "retain"}
         assert call_args[1]["retain"] is True
-    assert publish_calls_args[0][1][
-        "topic"
-    ] == "homeassistant/sensor/{}/temperature-degrees-celsius/config".format(
-        homeassistant_node_id
+    assert (
+        publish_calls_args[0][1]["topic"]
+        == f"homeassistant/sensor/{homeassistant_node_id}/temperature-degrees-celsius/config"
     )
-    assert publish_calls_args[1][1][
-        "topic"
-    ] == "homeassistant/sensor/{}/relative-humidity-percent/config".format(
-        homeassistant_node_id
+    assert (
+        publish_calls_args[1][1]["topic"]
+        == f"homeassistant/sensor/{homeassistant_node_id}/relative-humidity-percent/config"
     )
     device_attrs = {
         "identifiers": ["FT017TH/" + homeassistant_node_id],
         "model": "FT017TH",
     }
     assert json.loads(publish_calls_args[0][1]["payload"]) == {
-        "unique_id": "fphammerle/wireless-sensor-mqtt/FT017TH/{}/{}".format(
-            homeassistant_node_id, "temperature-degrees-celsius"
-        ),
-        "name": "{} temperature".format(homeassistant_node_id),
+        "unique_id": f"fphammerle/wireless-sensor-mqtt/FT017TH/{homeassistant_node_id}"
+        "/temperature-degrees-celsius",
+        "name": f"{homeassistant_node_id} temperature",
         "state_topic": mqtt_topic_prefix + "/temp",
         "device_class": "temperature",
         "unit_of_measurement": "°C",
@@ -78,10 +74,9 @@ def test__publish_homeassistant_discovery_config(
         "device": device_attrs,
     }
     assert json.loads(publish_calls_args[1][1]["payload"]) == {
-        "unique_id": "fphammerle/wireless-sensor-mqtt/FT017TH/{}/relative-humidity-percent".format(
-            homeassistant_node_id
-        ),
-        "name": "{} relative humidity".format(homeassistant_node_id),
+        "unique_id": f"fphammerle/wireless-sensor-mqtt/FT017TH/{homeassistant_node_id}"
+        "/relative-humidity-percent",
+        "name": f"{homeassistant_node_id} relative humidity",
         "state_topic": mqtt_topic_prefix + "/rel-humidity",
         "device_class": "humidity",
         "unit_of_measurement": "%",
@@ -214,8 +209,8 @@ def test__run_mock_measurements(mqtt_topic_prefix):
             mock_measurements=True,
             unlock_spi_device=False,
         )
-    assert init_mqtt_client_mock.call_count == 1
-    assert hass_config_mock.call_count == 1
+    init_mqtt_client_mock.assert_called_once()
+    hass_config_mock.assert_called_once()
     assert all(c[0][0] == 8 for c in sleep_mock.call_args_list)
     publish_calls_args = mqtt_client_mock.publish.call_args_list
     assert len(publish_calls_args) == 2 * 3
