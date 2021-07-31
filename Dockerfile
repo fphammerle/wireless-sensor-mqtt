@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=docker.io/python:3.8-alpine3.13
+ARG BASE_IMAGE=docker.io/python:3.9-alpine3.14
 ARG SOURCE_DIR_PATH=/wireless-sensor-mqtt
 
 
