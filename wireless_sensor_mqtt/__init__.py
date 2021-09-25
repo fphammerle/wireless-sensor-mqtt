@@ -190,7 +190,7 @@ def _publish_homeassistant_discovery_config(
             "unique_id": unique_id,
             "device_class": device_class,
             # friendly_name & template for default entity_id
-            "name": "{} {}".format(homeassistant_node_id, name_suffix),
+            "name": f"{homeassistant_node_id} {name_suffix}",
             "state_topic": state_topic,
             "unit_of_measurement": unit,
             "expire_after": 60 * 10,  # seconds
@@ -257,7 +257,7 @@ def _run(
         _mqtt_publish(
             client=mqtt_client,
             topic=temperature_topic,
-            payload="{:.02f}".format(measurement.temperature_degrees_celsius),
+            payload=f"{measurement.temperature_degrees_celsius:.02f}",
             retain=False,
         )
         _mqtt_publish(
@@ -265,7 +265,7 @@ def _run(
             topic=humidity_topic,
             # > unit_of_measurement: '%'
             # https://www.home-assistant.io/integrations/sensor.mqtt/#temperature-and-humidity-sensors
-            payload="{:.02f}".format(measurement.relative_humidity * 100),
+            payload=f"{(measurement.relative_humidity * 100):.02f}",
             retain=False,
         )
 
@@ -279,9 +279,7 @@ def _main() -> None:
     argparser.add_argument(
         "--mqtt-port",
         type=int,
-        help="default {} ({} with --mqtt-disable-tls)".format(
-            _MQTT_DEFAULT_TLS_PORT, _MQTT_DEFAULT_PORT
-        ),
+        help=f"default {_MQTT_DEFAULT_TLS_PORT} ({_MQTT_DEFAULT_PORT} with --mqtt-disable-tls)",
     )
     argparser.add_argument("--mqtt-username", type=str)
     argparser.add_argument("--mqtt-disable-tls", action="store_true")
@@ -358,12 +356,10 @@ def _main() -> None:
         args.homeassistant_node_id
     ):
         raise ValueError(
-            "invalid home assistant node id {!r} (length >= 1, allowed characters: {})".format(
-                args.homeassistant_node_id,
-                # pylint: disable=protected-access; false positive
-                wireless_sensor_mqtt._homeassistant.NODE_ID_ALLOWED_CHARS,
-            )
-            + "\nchange argument of --homeassistant-node-id"
+            f"invalid home assistant node id {args.homeassistant_node_id!r}"
+            " (length >= 1, allowed characters:"
+            f" {wireless_sensor_mqtt._homeassistant.NODE_ID_ALLOWED_CHARS})"
+            "\nchange argument of --homeassistant-node-id"
         )
     _run(
         mqtt_host=args.mqtt_host,
