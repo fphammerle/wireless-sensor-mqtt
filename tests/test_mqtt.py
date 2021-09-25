@@ -79,9 +79,8 @@ def test__init_mqtt_client_tls(caplog, host, port, disable_tls):
         )
     assert caplog.records[0].levelno == logging.INFO
     assert caplog.records[0].message == (
-        "connecting to MQTT broker {}:{} (TLS {})".format(
-            host, port, "disabled" if disable_tls else "enabled"
-        )
+        f"connecting to MQTT broker {host}:{port}"
+        f" (TLS {'disabled' if disable_tls else 'enabled'})"
     )
     if disable_tls:
         mqtt_client_class().tls_set.assert_not_called()
