@@ -6,7 +6,9 @@ ARG SOURCE_DIR_PATH=/wireless-sensor-mqtt
 FROM $BASE_IMAGE as build
 
 RUN apk add --no-cache \
+        g++ `# numpy build` \
         gcc `# spidev build` \
+        gfortran `# numpy build` \
         git `# setuptools_scm` \
         jq `# edit Pipfile.lock` \
         linux-headers `# spidev build linux/spi/spidev.h` \
