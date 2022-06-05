@@ -93,6 +93,7 @@ def _mqtt_attempt_reconnect(client: paho.mqtt.client.Client) -> None:
                 f"Client.reconnect() returned expected return code {return_code}"
             )
     # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L1805
+    # pylint: disable=overlapping-except; explicitly covering socket.error for better readability
     except (socket.error, OSError, RuntimeError):
         _LOGGER.error("failed to reconnect to MQTT broker", exc_info=True)
 
