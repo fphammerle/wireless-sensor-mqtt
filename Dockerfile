@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=docker.io/python:3.9-alpine3.14
+ARG BASE_IMAGE=docker.io/python:3.10-alpine3.19
 ARG SOURCE_DIR_PATH=/wireless-sensor-mqtt
 
 
@@ -30,6 +30,7 @@ RUN jq 'del(.default."wireless-sensor-mqtt", .default."sanitized-package")' Pipf
     && pipenv install --deploy --verbose
 COPY --chown=build:nobody . $SOURCE_DIR_PATH
 RUN pipenv install --deploy --verbose \
+    && .venv/bin/wireless-sensor-mqtt --help >/dev/null \
     && pipenv graph \
     && pipenv run pip freeze \
     && rm -rf .git/ $PIPENV_CACHE_DIR \
