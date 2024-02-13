@@ -29,10 +29,12 @@ RUN jq 'del(.default."wireless-sensor-mqtt", .default."sanitized-package")' Pipf
     && mv Pipfile.lock~ Pipfile.lock \
     && pipenv install --deploy --verbose
 COPY --chown=build:nobody . $SOURCE_DIR_PATH
+# allow manual specification to support build without git history
+ARG SETUPTOOLS_SCM_PRETEND_VERSION=
 # ctypes.util.find_library fails in python:3.10-alpine3.19
 # https://web.archive.org/web/20240213194124/https://github.com/python/cpython/issues/65821
 RUN pipenv install --deploy --verbose \
-    && .venv/bin/wireless-sensor-mqtt --help >/dev/null \
+    && pipenv run wireless-sensor-mqtt --help >/dev/null \
     && pipenv graph \
     && pipenv run pip freeze \
     && rm -rf .git/ $PIPENV_CACHE_DIR \

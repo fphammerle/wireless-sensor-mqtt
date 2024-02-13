@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- dockerfile: support build without git history
+  (by manually setting build argument `SETUPTOOLS_SCM_PRETEND_VERSION`)
+
 ### Changed
 - detect arrival of new package via edge on CC1101's `GDO0` pin (instead of polling),
   adding new required command-line parameter `--gdo0-gpio-line-name`
