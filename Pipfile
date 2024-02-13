@@ -6,8 +6,8 @@ name = "pypi"
 [packages]
 wireless-sensor-mqtt = {path = ".", editable = true}
 
-# python3.7 compatibility
-numpy = "<1.22"
+# python3.8 compatibility
+numpy = "<1.25"
 
 # for Dockerfile / .github/workflows/container-image.yml
 Cython = {markers = "python_version == '3.9.*'"}
