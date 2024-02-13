@@ -97,8 +97,9 @@ def test__publish_homeassistant_discovery_config(
 )
 @pytest.mark.parametrize("homeassistant_discovery_prefix", ["homeassistant"])
 @pytest.mark.parametrize("homeassistant_node_id", ["ft017th-living-room"])
+@pytest.mark.parametrize("gdo0_gpio_line_name", [b"GPIO42"])
 @pytest.mark.parametrize("unlock_spi_device", [True, False])
-def test__run(
+def test__run(  # pylint: disable=too-many-locals
     mqtt_host,
     mqtt_port,
     mqtt_disable_tls,
@@ -107,6 +108,7 @@ def test__run(
     mqtt_topic_prefix,
     homeassistant_discovery_prefix,
     homeassistant_node_id,
+    gdo0_gpio_line_name: bytes,
     unlock_spi_device,
 ):
     # pylint: disable=too-many-arguments
@@ -146,6 +148,7 @@ def test__run(
                 homeassistant_discovery_prefix=homeassistant_discovery_prefix,
                 homeassistant_node_id=homeassistant_node_id,
                 mock_measurements=False,
+                gdo0_gpio_line_name=gdo0_gpio_line_name,
                 unlock_spi_device=unlock_spi_device,
             )
     init_mqtt_client_mock.assert_called_once_with(
@@ -155,7 +158,9 @@ def test__run(
         username=mqtt_username,
         password=mqtt_password,
     )
-    sensor_init_mock.assert_called_once_with(unlock_spi_device=unlock_spi_device)
+    sensor_init_mock.assert_called_once_with(
+        gdo0_gpio_line_name=gdo0_gpio_line_name, unlock_spi_device=unlock_spi_device
+    )
     hass_config_mock.assert_called_once_with(
         mqtt_client=mqtt_client_mock,
         homeassistant_discovery_prefix=homeassistant_discovery_prefix,
@@ -207,6 +212,7 @@ def test__run_mock_measurements(mqtt_topic_prefix):
             homeassistant_discovery_prefix="homeassistant",
             homeassistant_node_id="ft017th-living-room",
             mock_measurements=True,
+            gdo0_gpio_line_name=b"GPIO24",
             unlock_spi_device=False,
         )
     init_mqtt_client_mock.assert_called_once()

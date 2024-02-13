@@ -18,10 +18,10 @@
     "default": {
         "cc1101": {
             "hashes": [
-                "sha256:3ad5045d7d2d4904c323f18bc682b586eb0035b7df0524c7f2bf8fe47b9baa21",
-                "sha256:a3b88311a25361bcf6ab5dff13d56f950162250ebe1e06bdbb1224597a59c263"
+                "sha256:57e4a34b803b3612aa6ae20840fd795e55d0c54fb8521be6aacf0082fc441a3e",
+                "sha256:65f35982b4b614a09f89a9a435130bba317bb9508e74fbcd12294840658ad548"
             ],
-            "version": "==2.3.0rc0"
+            "version": "==2.7.3"
         },
         "cython": {
             "hashes": [
@@ -137,10 +137,10 @@
         },
         "wireless-sensor": {
             "hashes": [
-                "sha256:46e3f13d0b7b516588da3e4eea8f3b16f2962ebfea11402f3fbc80ba690cbcba",
-                "sha256:69e338f34905fc3ae331c79491f22d26762988625ff21c4fd1a53f017eba1f7b"
+                "sha256:886ebd52ca818ed2addd50507eebc56b0e6974bc266a902c3877f574e1c54b55",
+                "sha256:8b4c0b80d5ae7f4059299da31c0931a2a45e62e446c452ca3eb8009c0aa287ab"
             ],
-            "version": "==0.3.0"
+            "version": "==0.4.0"
         },
         "wireless-sensor-mqtt": {
             "editable": true,

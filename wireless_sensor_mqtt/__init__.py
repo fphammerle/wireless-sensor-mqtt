@@ -206,15 +206,20 @@ def _publish_homeassistant_discovery_config(
 
 
 def _measurement_iter(
-    mock_measurements: bool, unlock_spi_device: bool
+    mock_measurements: bool, gdo0_gpio_line_name: bytes, unlock_spi_device: bool
 ) -> typing.Iterator[wireless_sensor.Measurement]:
     if mock_measurements:
         logging.warning("publishing %d mocked measurements", _MEASUREMENT_MOCKS_COUNT)
         return map(lambda _: _mock_measurement(), range(_MEASUREMENT_MOCKS_COUNT))
-    return wireless_sensor.FT017TH(unlock_spi_device=unlock_spi_device).receive()
+    return filter(
+        None,
+        wireless_sensor.FT017TH(
+            gdo0_gpio_line_name=gdo0_gpio_line_name, unlock_spi_device=unlock_spi_device
+        ).receive(timeout_seconds=3600),
+    )
 
 
-def _run(
+def _run(  # pylint: disable=too-many-locals
     *,
     mqtt_host: str,
     mqtt_port: int,
@@ -225,6 +230,7 @@ def _run(
     homeassistant_discovery_prefix: str,
     homeassistant_node_id: str,
     mock_measurements: bool,
+    gdo0_gpio_line_name: bytes,
     unlock_spi_device: bool,
 ) -> None:
     # pylint: disable=too-many-arguments
@@ -243,7 +249,9 @@ def _run(
     )
     homeassistant_discover_config_published = False
     for measurement in _measurement_iter(
-        mock_measurements=mock_measurements, unlock_spi_device=unlock_spi_device
+        mock_measurements=mock_measurements,
+        gdo0_gpio_line_name=gdo0_gpio_line_name,
+        unlock_spi_device=unlock_spi_device,
     ):
         _LOGGER.debug("received %s", measurement)
         if not homeassistant_discover_config_published:
@@ -315,6 +323,16 @@ def _main() -> None:
         action="store_true",
         help="publish random values to test MQTT connection",
     )
+    argparser.add_argument(
+        "--gdo0-gpio-line-name",
+        type=str,
+        required=True,
+        # GPIO24 recommended at
+        # https://github.com/fphammerle/python-cc1101/tree/v2.7.3#wiring-raspberry-pi
+        help="Name of GPIO pin that CC1101's GDO0 pin is connected to."
+        " Run command `gpioinfo` to get a list of all available GPIO lines."
+        " Recommended: GPIO24",
+    )
     # https://github.com/fphammerle/wireless-sensor/blob/v0.3.0/wireless_sensor/_cli.py#L28
     argparser.add_argument(
         "--unlock-spi-device",
@@ -372,5 +390,6 @@ def _main() -> None:
         homeassistant_discovery_prefix=args.homeassistant_discovery_prefix,
         homeassistant_node_id=args.homeassistant_node_id,
         mock_measurements=args.mock_measurements,
+        gdo0_gpio_line_name=args.gdo0_gpio_line_name.encode(),
         unlock_spi_device=args.unlock_spi_device,
     )
