@@ -9,9 +9,6 @@ wireless-sensor-mqtt = {path = ".", editable = true}
 # python3.8 compatibility
 numpy = "<1.25"
 
-# for Dockerfile / .github/workflows/container-image.yml
-Cython = {markers = "python_version == '3.9.*'"}
-
 [dev-packages]
 black = "*"
 mypy = "*"

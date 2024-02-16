@@ -14,7 +14,7 @@ MQTT client reporting measurements of FT017TH wireless thermo/hygrometers
 * MQTT broker
 * [FT017TH](https://github.com/fphammerle/FT017TH-wireless-thermometer-hygrometer-signal#product-details) sensor
 * [CC1101 transceiver](https://www.ti.com/product/CC1101)
-* Linux machine with CC1101 connected to SPI port
+* Linux machine with CC1101 connected to SPI port & `GDO0` connected to some GPIO pin
   ([wiring instructions](https://github.com/fphammerle/python-cc1101#wiring-raspberry-pi)
   for raspberry pi)
 
@@ -27,7 +27,9 @@ $ pip3 install --user --upgrade wireless-sensor-mqtt
 ## Usage
 
 ```sh
-$ wireless-sensor-mqtt --mqtt-host HOSTNAME_OR_IP_ADDRESS \
+$ wireless-sensor-mqtt \
+    --gdo0-gpio-line-name GPIO24 \
+    --mqtt-host HOSTNAME_OR_IP_ADDRESS \
     --mqtt-topic-prefix MQTT_TOPIC_PREFIX
 ```
 
@@ -69,7 +71,8 @@ Pre-built docker images are available at https://hub.docker.com/r/fphammerle/wir
 
 ```sh
 $ sudo docker run --name wireless_sensor_mqtt \
-    --device /dev/spidev0.0 fphammerle/wireless-sensor-mqtt \
+    --device /dev/spidev0.0 --device /dev/gpiochip0 \
+    fphammerle/wireless-sensor-mqtt \
     wireless-sensor-mqtt --mqtt-host HOSTNAME_OR_IP_ADDRESS …
 ```
 

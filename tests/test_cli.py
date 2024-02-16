@@ -23,6 +23,15 @@ import pytest
 
 import wireless_sensor_mqtt
 
+_ARGV_PREFIX = [
+    "",
+    "--mqtt-host",
+    "mqtt-broker.local",
+    "--gdo0-gpio-line-name",
+    "GPIO24",
+]
+
+
 # pylint: disable=protected-access
 
 
@@ -144,9 +153,10 @@ def test__main(
     # pylint: disable=too-many-arguments
     with unittest.mock.patch(
         "wireless_sensor_mqtt._run"
-    ) as run_mock, unittest.mock.patch("sys.argv", argv):
-        # pylint: disable=protected-access
-        wireless_sensor_mqtt._main()
+    ) as run_mock, unittest.mock.patch(
+        "sys.argv", argv + ["--gdo0-gpio-line-name", "GPIO24"]
+    ):
+        wireless_sensor_mqtt._main()  # pylint: disable=protected-access
     run_mock.assert_called_once_with(
         mqtt_host=expected_mqtt_host,
         mqtt_port=expected_mqtt_port,
@@ -157,6 +167,7 @@ def test__main(
         homeassistant_discovery_prefix="homeassistant",
         homeassistant_node_id="FT017TH",
         mock_measurements=False,
+        gdo0_gpio_line_name=b"GPIO24",
         unlock_spi_device=False,
     )
 
@@ -191,6 +202,8 @@ def test__main_password_file(tmpdir, password_file_content, expected_password):
             "me",
             "--mqtt-password-file",
             str(mqtt_password_path),
+            "--gdo0-gpio-line-name",
+            "GPIO24",
         ],
     ):
         # pylint: disable=protected-access
@@ -205,6 +218,7 @@ def test__main_password_file(tmpdir, password_file_content, expected_password):
         homeassistant_discovery_prefix="homeassistant",
         homeassistant_node_id="FT017TH",
         mock_measurements=False,
+        gdo0_gpio_line_name=b"GPIO24",
         unlock_spi_device=False,
     )
 
@@ -222,6 +236,8 @@ def test__main_password_file_collision(capsys):
             "secret",
             "--mqtt-password-file",
             "/var/lib/secrets/mqtt/password",
+            "--gdo0-gpio-line-name",
+            "GPIO24",
         ],
     ):
         with pytest.raises(SystemExit):
@@ -246,7 +262,8 @@ def test__main_homeassistant_discovery_prefix(args, discovery_prefix):
     with unittest.mock.patch(
         "wireless_sensor_mqtt._run"
     ) as run_mock, unittest.mock.patch(
-        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + args
+        "sys.argv",
+        _ARGV_PREFIX + args,
     ):
         wireless_sensor_mqtt._main()
     run_mock.assert_called_once()
@@ -263,9 +280,7 @@ def test__main_homeassistant_discovery_prefix(args, discovery_prefix):
 def test__main_homeassistant_node_id(args, node_id):
     with unittest.mock.patch(
         "wireless_sensor_mqtt._run"
-    ) as run_mock, unittest.mock.patch(
-        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + args
-    ):
+    ) as run_mock, unittest.mock.patch("sys.argv", _ARGV_PREFIX + args):
         wireless_sensor_mqtt._main()
     run_mock.assert_called_once()
     assert run_mock.call_args[1]["homeassistant_node_id"] == node_id
@@ -275,9 +290,7 @@ def test__main_homeassistant_node_id(args, node_id):
     "args", [["--homeassistant-node-id", "no pe"], ["--homeassistant-node-id", ""]]
 )
 def test__main_homeassistant_node_id_invalid(args):
-    with unittest.mock.patch(
-        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + args
-    ):
+    with unittest.mock.patch("sys.argv", _ARGV_PREFIX + args):
         with pytest.raises(ValueError):
             wireless_sensor_mqtt._main()
 
@@ -290,7 +303,7 @@ def test__main_log_level(additional_argv, root_log_level):
     with unittest.mock.patch("wireless_sensor_mqtt._run"), unittest.mock.patch(
         "logging.basicConfig"
     ) as logging_basic_config_mock, unittest.mock.patch(
-        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
+        "sys.argv", _ARGV_PREFIX + additional_argv
     ):
         wireless_sensor_mqtt._main()
     logging_basic_config_mock.assert_called_once()
@@ -306,7 +319,7 @@ def test__main_log_level_cc1101(additional_argv, log_level):
     with unittest.mock.patch("wireless_sensor_mqtt._run"), unittest.mock.patch(
         "logging.basicConfig"
     ) as logging_basic_config_mock, unittest.mock.patch(
-        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
+        "sys.argv", _ARGV_PREFIX + additional_argv
     ):
         wireless_sensor_mqtt._main()
     logging_basic_config_mock.assert_called_once()
@@ -321,11 +334,27 @@ def test__main_log_level_cc1101(additional_argv, log_level):
 def test__main_mock_measurements(additional_argv, mock_measurements):
     with unittest.mock.patch(
         "wireless_sensor_mqtt._run"
-    ) as main_mock, unittest.mock.patch(
-        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
-    ):
+    ) as main_mock, unittest.mock.patch("sys.argv", _ARGV_PREFIX + additional_argv):
         wireless_sensor_mqtt._main()
     assert main_mock.call_args[1]["mock_measurements"] == mock_measurements
+
+
+@pytest.mark.parametrize("gdo0_gpio_line_name", [b"GPIO21", b"GPIO24"])
+def test__main_gdo0_gpio_line_name(gdo0_gpio_line_name: bytes) -> None:
+    with unittest.mock.patch(
+        "wireless_sensor_mqtt._run"
+    ) as main_mock, unittest.mock.patch(
+        "sys.argv",
+        [
+            "",
+            "--mqtt-host",
+            "mqtt-broker.local",
+            "--gdo0-gpio-line-name",
+            gdo0_gpio_line_name.decode(),
+        ],
+    ):
+        wireless_sensor_mqtt._main()
+    assert main_mock.call_args[1]["gdo0_gpio_line_name"] == gdo0_gpio_line_name
 
 
 @pytest.mark.parametrize(
@@ -335,8 +364,6 @@ def test__main_mock_measurements(additional_argv, mock_measurements):
 def test__main_unlock_spi_device(additional_argv, unlock_spi_device):
     with unittest.mock.patch(
         "wireless_sensor_mqtt._run"
-    ) as main_mock, unittest.mock.patch(
-        "sys.argv", ["", "--mqtt-host", "mqtt-broker.local"] + additional_argv
-    ):
+    ) as main_mock, unittest.mock.patch("sys.argv", _ARGV_PREFIX + additional_argv):
         wireless_sensor_mqtt._main()
     assert main_mock.call_args[1]["unlock_spi_device"] == unlock_spi_device

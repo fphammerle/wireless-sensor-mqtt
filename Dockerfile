@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=docker.io/python:3.9-alpine3.14
+ARG BASE_IMAGE=docker.io/python:3.10-alpine3.19
 ARG SOURCE_DIR_PATH=/wireless-sensor-mqtt
 
 
@@ -29,10 +29,17 @@ RUN jq 'del(.default."wireless-sensor-mqtt", .default."sanitized-package")' Pipf
     && mv Pipfile.lock~ Pipfile.lock \
     && pipenv install --deploy --verbose
 COPY --chown=build:nobody . $SOURCE_DIR_PATH
+# allow manual specification to support build without git history
+ARG SETUPTOOLS_SCM_PRETEND_VERSION=
+# ctypes.util.find_library fails in python:3.10-alpine3.19
+# https://web.archive.org/web/20240213194124/https://github.com/python/cpython/issues/65821
 RUN pipenv install --deploy --verbose \
+    && pipenv run wireless-sensor-mqtt --help >/dev/null \
     && pipenv graph \
     && pipenv run pip freeze \
     && rm -rf .git/ $PIPENV_CACHE_DIR \
+    && sed -i 's#ctypes.util.find_library("gpiod")#"/usr/lib/libgpiod.so.2"#' \
+        /wireless-sensor-mqtt/.venv/lib/python*/site-packages/cc1101/_gpio.py \
     && chmod -cR a+rX .
 
 # workaround for broken multi-stage copy
@@ -47,6 +54,7 @@ FROM $BASE_IMAGE
 
 RUN apk add --no-cache \
         ca-certificates \
+        libgpiod `# python-cc1101` \
         tini \
     && find / -xdev -type f -perm /u+s -exec chmod -c u-s {} \; \
     && find / -xdev -type f -perm /g+s -exec chmod -c g-s {} \;

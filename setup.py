@@ -69,7 +69,9 @@ setuptools.setup(
     },
     python_requires=">=3.8",  # python<3.8 untested
     install_requires=[
-        "wireless-sensor>=0.3.0,<0.4",  # >=0.3.0 for FT017TH(unlock_spi_device=True)
+        # >=0.3.0 for FT017TH(unlock_spi_device=True)
+        # >=0.4.0 for FT017TH(gdo0_gpio_line_name=…)
+        "wireless-sensor>=0.4.0,<0.5",
         "paho-mqtt<2",
     ],
     setup_requires=["setuptools_scm"],
