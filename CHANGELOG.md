@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- declare compatibility with `python3.11`
+
 ### Changed
 - container image: upgrade alpine base image from 3.19 to 3.20
 
