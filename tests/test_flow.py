@@ -17,8 +17,11 @@
 
 import datetime
 import json
+import logging
+import ssl
 import unittest.mock
 
+import _pytest
 import pytest
 import wireless_sensor
 
@@ -27,6 +30,7 @@ import wireless_sensor_mqtt
 # pylint: disable=protected-access,too-many-positional-arguments
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "mqtt_topic_prefix", ["wireless-sensor/FT017TH", "living-room/ft017th"]
 )
@@ -34,11 +38,11 @@ import wireless_sensor_mqtt
 @pytest.mark.parametrize(
     "homeassistant_node_id", ["ft017th-living-room", "bed-room-sensor"]
 )
-def test__publish_homeassistant_discovery_config(
+async def test__publish_homeassistant_discovery_config(
     mqtt_topic_prefix, homeassistant_discovery_prefix, homeassistant_node_id
 ):
-    mqtt_client_mock = unittest.mock.MagicMock()
-    wireless_sensor_mqtt._publish_homeassistant_discovery_config(
+    mqtt_client_mock = unittest.mock.AsyncMock()
+    await wireless_sensor_mqtt._publish_homeassistant_discovery_config(
         mqtt_client=mqtt_client_mock,
         homeassistant_discovery_prefix=homeassistant_discovery_prefix,
         homeassistant_node_id=homeassistant_node_id,
@@ -85,6 +89,7 @@ def test__publish_homeassistant_discovery_config(
     }
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("mqtt_host", ["mqtt-broker.local"])
 @pytest.mark.parametrize("mqtt_port", [1234])
 @pytest.mark.parametrize("mqtt_disable_tls", [True, False])
@@ -99,7 +104,8 @@ def test__publish_homeassistant_discovery_config(
 @pytest.mark.parametrize("homeassistant_node_id", ["ft017th-living-room"])
 @pytest.mark.parametrize("gdo0_gpio_line_name", [b"GPIO42"])
 @pytest.mark.parametrize("unlock_spi_device", [True, False])
-def test__run(  # pylint: disable=too-many-locals
+async def test__run(  # pylint: disable=too-many-locals
+    caplog: _pytest.logging.LogCaptureFixture,
     mqtt_host,
     mqtt_port,
     mqtt_disable_tls,
@@ -131,14 +137,13 @@ def test__run(  # pylint: disable=too-many-locals
             ]
         ],
     ):
-        mqtt_client_mock = unittest.mock.MagicMock()
         with unittest.mock.patch(
-            "wireless_sensor_mqtt._init_mqtt_client"
-        ) as init_mqtt_client_mock, unittest.mock.patch(
+            "aiomqtt.Client"
+        ) as mqtt_client_class_mock, unittest.mock.patch(
             "wireless_sensor_mqtt._publish_homeassistant_discovery_config"
         ) as hass_config_mock:
-            init_mqtt_client_mock.return_value = mqtt_client_mock
-            wireless_sensor_mqtt._run(
+            caplog.set_level(logging.DEBUG)
+            await wireless_sensor_mqtt._run(
                 mqtt_host=mqtt_host,
                 mqtt_port=mqtt_port,
                 mqtt_disable_tls=mqtt_disable_tls,
@@ -151,25 +156,56 @@ def test__run(  # pylint: disable=too-many-locals
                 gdo0_gpio_line_name=gdo0_gpio_line_name,
                 unlock_spi_device=unlock_spi_device,
             )
-    # pylint: disable=duplicate-code
-    init_mqtt_client_mock.assert_called_once_with(
-        host=mqtt_host,
-        port=mqtt_port,
-        disable_tls=mqtt_disable_tls,
-        username=mqtt_username,
-        password=mqtt_password,
+    mqtt_client_class_mock.assert_called_once()
+    assert not mqtt_client_class_mock.call_args[0]  # args
+    mqtt_client_init_kwargs = mqtt_client_class_mock.call_args[1]
+    assert set(mqtt_client_init_kwargs.keys()) == {
+        "tls_context",
+        "hostname",
+        "port",
+        "username",
+        "password",
+    }
+    if mqtt_disable_tls:
+        assert mqtt_client_init_kwargs["tls_context"] is None
+    else:
+        assert isinstance(mqtt_client_init_kwargs["tls_context"], ssl.SSLContext)
+    assert mqtt_client_init_kwargs["hostname"] == mqtt_host
+    assert mqtt_client_init_kwargs["port"] == mqtt_port
+    assert mqtt_client_init_kwargs["username"] == mqtt_username
+    assert mqtt_client_init_kwargs["password"] == mqtt_password
+    mqtt_client_class_mock.return_value.__aenter__.assert_called_once_with()
+    assert caplog.records[0].levelno == logging.INFO
+    assert caplog.records[0].message == (
+        # pylint: disable=consider-using-f-string
+        "connecting to MQTT broker {}:{} (TLS {})".format(
+            mqtt_host, mqtt_port, "disabled" if mqtt_disable_tls else "enabled"
+        )
+    )
+    assert caplog.records[1].levelno == logging.DEBUG
+    assert caplog.records[1].message == (
+        f"connected to MQTT broker {mqtt_host}:{mqtt_port}"
+    )
+    assert caplog.records[2].levelno == logging.DEBUG
+    assert caplog.records[2].message == (
+        "publishing measurements on topics"
+        f" '{mqtt_topic_prefix}/temperature-degrees-celsius'"
+        f" and '{mqtt_topic_prefix}/relative-humidity-percent'"
     )
     sensor_init_mock.assert_called_once_with(
         gdo0_gpio_line_name=gdo0_gpio_line_name, unlock_spi_device=unlock_spi_device
     )
+    mqtt_client_instance_mock = (
+        mqtt_client_class_mock.return_value.__aenter__.return_value
+    )
     hass_config_mock.assert_called_once_with(
-        mqtt_client=mqtt_client_mock,
+        mqtt_client=mqtt_client_instance_mock,
         homeassistant_discovery_prefix=homeassistant_discovery_prefix,
         homeassistant_node_id=homeassistant_node_id,
         temperature_topic=mqtt_topic_prefix + "/temperature-degrees-celsius",
         humidity_topic=mqtt_topic_prefix + "/relative-humidity-percent",
     )
-    publish_calls_args = mqtt_client_mock.publish.call_args_list
+    publish_calls_args = mqtt_client_instance_mock.publish.call_args_list
     assert len(publish_calls_args) == 2 * 2
     for call_args in publish_calls_args:
         assert not call_args[0]  # positional args
@@ -189,21 +225,57 @@ def test__run(  # pylint: disable=too-many-locals
     assert publish_calls_args[1][1]["payload"] == "50.12"
     assert publish_calls_args[2][1]["payload"] == "24.12"
     assert publish_calls_args[3][1]["payload"] == "40.12"
+    assert caplog.records[3].levelno == logging.DEBUG
+    assert caplog.records[3].message == (
+        "received Measurement("
+        "decoding_timestamp=datetime.datetime(2020, 12, 7, 18, 5, 1)"
+        ", temperature_degrees_celsius=23.1234567"
+        ", relative_humidity=0.501234567)"
+    )
+    assert caplog.records[4].levelno == logging.DEBUG
+    assert caplog.records[4].message == (
+        "received Measurement("
+        "decoding_timestamp=datetime.datetime(2020, 12, 7, 18, 6, 19)"
+        ", temperature_degrees_celsius=24.1234567"
+        ", relative_humidity=0.401234567)"
+    )
+    assert not caplog.records[5:]
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mqtt_disable_tls", [True, False])
+async def test__run_mqtt_client_authentication_missing_username(mqtt_disable_tls):
+    with unittest.mock.patch("aiomqtt.Client") as mqtt_client_class_mock, pytest.raises(
+        ValueError, match=r"^Missing MQTT username$"
+    ):
+        await wireless_sensor_mqtt._run(
+            mqtt_host="mqtt-broker.local",
+            mqtt_port=1883,
+            mqtt_disable_tls=mqtt_disable_tls,
+            mqtt_username=None,
+            mqtt_password="secret",
+            mqtt_topic_prefix="wireless-sensor/FT017TH",
+            homeassistant_discovery_prefix="homeassistant",
+            homeassistant_node_id="ft017th-living-room",
+            mock_measurements=False,
+            gdo0_gpio_line_name=b"GPIO42",
+            unlock_spi_device=False,
+        )
+    mqtt_client_class_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("mqtt_topic_prefix", ["ft017th"])
-def test__run_mock_measurements(mqtt_topic_prefix):
+async def test__run_mock_measurements(mqtt_topic_prefix):
     # pylint: disable=too-many-arguments
-    mqtt_client_mock = unittest.mock.MagicMock()
     with unittest.mock.patch(
-        "wireless_sensor_mqtt._init_mqtt_client"
-    ) as init_mqtt_client_mock, unittest.mock.patch(
+        "aiomqtt.Client"
+    ) as mqtt_client_class_mock, unittest.mock.patch(
         "time.sleep"
     ) as sleep_mock, unittest.mock.patch(
         "wireless_sensor_mqtt._publish_homeassistant_discovery_config"
     ) as hass_config_mock:
-        init_mqtt_client_mock.return_value = mqtt_client_mock
-        wireless_sensor_mqtt._run(
+        await wireless_sensor_mqtt._run(
             mqtt_host="mqtt-broker.local",
             mqtt_port=1234,
             mqtt_disable_tls=True,
@@ -216,10 +288,12 @@ def test__run_mock_measurements(mqtt_topic_prefix):
             gdo0_gpio_line_name=b"GPIO24",
             unlock_spi_device=False,
         )
-    init_mqtt_client_mock.assert_called_once()
     hass_config_mock.assert_called_once()
     assert all(c[0][0] == 8 for c in sleep_mock.call_args_list)
-    publish_calls_args = mqtt_client_mock.publish.call_args_list
+    mqtt_client_instance_mock = (
+        mqtt_client_class_mock.return_value.__aenter__.return_value
+    )
+    publish_calls_args = mqtt_client_instance_mock.publish.call_args_list
     assert len(publish_calls_args) == 2 * 3
     for call_args in publish_calls_args:
         assert not call_args[0]  # positional args

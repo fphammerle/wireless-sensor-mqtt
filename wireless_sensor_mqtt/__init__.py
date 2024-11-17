@@ -16,86 +16,26 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+import asyncio
 import json
 import logging
 import pathlib
 import random
-import socket
+import ssl
 import time
 import typing
 
-import paho.mqtt.client
+import aiomqtt
 import wireless_sensor
 
 import wireless_sensor_mqtt._homeassistant
 
 _MQTT_DEFAULT_PORT = 1883
 _MQTT_DEFAULT_TLS_PORT = 8883
-_MQTT_PUBLISH_TIMEOUT_SECONDS = 16
-_MQTT_PUBLISH_STATUS_POLL_INTERVAL_SECONDS = 1
 _MEASUREMENT_MOCKS_COUNT = 3
 _MEASUREMENT_MOCKS_INTERVAL_SECONDS = 8
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _mqtt_on_connect(
-    mqtt_client: paho.mqtt.client.Client,
-    userdata: None,
-    flags: typing.Dict,
-    return_code: int,
-) -> None:
-    # pylint: disable=unused-argument; callback
-    # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.0/src/paho/mqtt/client.py#L441
-    assert return_code == 0, return_code  # connection accepted
-    mqtt_broker_host, mqtt_broker_port = mqtt_client.socket().getpeername()
-    _LOGGER.debug("connected to MQTT broker %s:%d", mqtt_broker_host, mqtt_broker_port)
-
-
-def _init_mqtt_client(
-    *,
-    host: str,
-    port: int,
-    username: typing.Optional[str],
-    password: typing.Optional[str],
-    disable_tls: bool,
-) -> paho.mqtt.client.Client:
-    # https://pypi.org/project/paho-mqtt/
-    client = paho.mqtt.client.Client()
-    client.on_connect = _mqtt_on_connect
-    if not disable_tls:
-        client.tls_set(ca_certs=None)  # enable tls trusting default system certs
-    _LOGGER.info(
-        "connecting to MQTT broker %s:%d (TLS %s)",
-        host,
-        port,
-        "disabled" if disable_tls else "enabled",
-    )
-    if username:
-        client.username_pw_set(username=username, password=password)
-    elif password:
-        raise ValueError("Missing MQTT username")
-    client.connect(host=host, port=port)
-    return client
-
-
-def _mqtt_attempt_reconnect(client: paho.mqtt.client.Client) -> None:
-    """
-    > Calling connect() or reconnect() will cause the messages to be resent.
-    > Use reinitialise() to reset a client to its original state.
-    https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L530
-    """
-    _LOGGER.debug("reconnecting to MQTT broker")
-    try:
-        return_code = client.reconnect()
-        if return_code != paho.mqtt.client.MQTT_ERR_SUCCESS:
-            raise RuntimeError(
-                f"Client.reconnect() returned expected return code {return_code}"
-            )
-    # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L1805
-    # pylint: disable=overlapping-except; explicitly covering socket.error for better readability
-    except (socket.error, OSError, RuntimeError):
-        _LOGGER.error("failed to reconnect to MQTT broker", exc_info=True)
 
 
 def _mock_measurement() -> wireless_sensor.Measurement:
@@ -107,40 +47,9 @@ def _mock_measurement() -> wireless_sensor.Measurement:
     )
 
 
-def _mqtt_publish(
-    *, client: paho.mqtt.client.Client, topic: str, payload: str, **kwargs
-) -> None:
-    _LOGGER.debug("publishing mqtt msg: topic=%s payload=%s", topic, payload)
-    msg_info: paho.mqtt.client.MQTTMessageInfo = client.publish(
-        topic=topic, payload=payload, **kwargs
-    )
-    # MQTTMessageInfo.wait_for_publish() calls threading.Condition.wait() without timeout
-    # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L338
-    poll_start_time = time.time()
-    while (
-        not msg_info.is_published()
-        and (time.time() - poll_start_time) < _MQTT_PUBLISH_TIMEOUT_SECONDS
-    ):
-        if msg_info.rc == paho.mqtt.client.MQTT_ERR_NO_CONN:
-            _mqtt_attempt_reconnect(client)
-        time.sleep(_MQTT_PUBLISH_STATUS_POLL_INTERVAL_SECONDS)
-    # https://github.com/eclipse/paho.mqtt.python/blob/v1.5.1/src/paho/mqtt/client.py#L147
-    if msg_info.rc != paho.mqtt.client.MQTT_ERR_SUCCESS:
-        _LOGGER.error(
-            "failed to publish on topic %s (return code %d)", topic, msg_info.rc
-        )
-    elif not msg_info.is_published():
-        _LOGGER.warning(
-            "reached timeout of %d seconds"
-            " while waiting for MQTT message on topic %s to get published",
-            _MQTT_PUBLISH_TIMEOUT_SECONDS,
-            topic,
-        )
-
-
-def _publish_homeassistant_discovery_config(
+async def _publish_homeassistant_discovery_config(
     *,
-    mqtt_client: paho.mqtt.client.Client,
+    mqtt_client: aiomqtt.Client,
     homeassistant_discovery_prefix: str,
     homeassistant_node_id: str,
     temperature_topic: str,
@@ -197,11 +106,8 @@ def _publish_homeassistant_discovery_config(
             "expire_after": 60 * 10,  # seconds
             "device": device_attrs,
         }
-        _mqtt_publish(
-            client=mqtt_client,
-            topic=discovery_topic,
-            payload=json.dumps(config),
-            retain=True,
+        await mqtt_client.publish(
+            topic=discovery_topic, payload=json.dumps(config), retain=True
         )
 
 
@@ -219,7 +125,7 @@ def _measurement_iter(
     )
 
 
-def _run(  # pylint: disable=too-many-locals
+async def _run(  # pylint: disable=too-many-locals
     *,
     mqtt_host: str,
     mqtt_port: int,
@@ -234,49 +140,57 @@ def _run(  # pylint: disable=too-many-locals
     unlock_spi_device: bool,
 ) -> None:
     # pylint: disable=too-many-arguments
-    # https://pypi.org/project/paho-mqtt/
-    mqtt_client = _init_mqtt_client(
-        host=mqtt_host,
+    _LOGGER.info(
+        "connecting to MQTT broker %s:%d (TLS %s)",
+        mqtt_host,
+        mqtt_port,
+        "disabled" if mqtt_disable_tls else "enabled",
+    )
+    if mqtt_password and not mqtt_username:
+        raise ValueError("Missing MQTT username")
+    async with aiomqtt.Client(
+        tls_context=None if mqtt_disable_tls else ssl.create_default_context(),
+        hostname=mqtt_host,
         port=mqtt_port,
-        disable_tls=mqtt_disable_tls,
         username=mqtt_username,
         password=mqtt_password,
-    )
-    temperature_topic = mqtt_topic_prefix + "/temperature-degrees-celsius"
-    humidity_topic = mqtt_topic_prefix + "/relative-humidity-percent"
-    _LOGGER.debug(
-        "publishing measurements on topics %r and %r", temperature_topic, humidity_topic
-    )
-    homeassistant_discover_config_published = False
-    for measurement in _measurement_iter(
-        mock_measurements=mock_measurements,
-        gdo0_gpio_line_name=gdo0_gpio_line_name,
-        unlock_spi_device=unlock_spi_device,
-    ):
-        _LOGGER.debug("received %s", measurement)
-        if not homeassistant_discover_config_published:
-            _publish_homeassistant_discovery_config(
-                mqtt_client=mqtt_client,
-                homeassistant_discovery_prefix=homeassistant_discovery_prefix,
-                homeassistant_node_id=homeassistant_node_id,
-                temperature_topic=temperature_topic,
-                humidity_topic=humidity_topic,
+    ) as mqtt_client:
+        _LOGGER.debug("connected to MQTT broker %s:%d", mqtt_host, mqtt_port)
+        temperature_topic = mqtt_topic_prefix + "/temperature-degrees-celsius"
+        humidity_topic = mqtt_topic_prefix + "/relative-humidity-percent"
+        _LOGGER.debug(
+            "publishing measurements on topics %r and %r",
+            temperature_topic,
+            humidity_topic,
+        )
+        homeassistant_discover_config_published = False
+        for measurement in _measurement_iter(
+            mock_measurements=mock_measurements,
+            gdo0_gpio_line_name=gdo0_gpio_line_name,
+            unlock_spi_device=unlock_spi_device,
+        ):
+            _LOGGER.debug("received %s", measurement)
+            if not homeassistant_discover_config_published:
+                await _publish_homeassistant_discovery_config(
+                    mqtt_client=mqtt_client,
+                    homeassistant_discovery_prefix=homeassistant_discovery_prefix,
+                    homeassistant_node_id=homeassistant_node_id,
+                    temperature_topic=temperature_topic,
+                    humidity_topic=humidity_topic,
+                )
+                homeassistant_discover_config_published = True
+            await mqtt_client.publish(
+                topic=temperature_topic,
+                payload=f"{measurement.temperature_degrees_celsius:.02f}",
+                retain=False,
             )
-            homeassistant_discover_config_published = True
-        _mqtt_publish(
-            client=mqtt_client,
-            topic=temperature_topic,
-            payload=f"{measurement.temperature_degrees_celsius:.02f}",
-            retain=False,
-        )
-        _mqtt_publish(
-            client=mqtt_client,
-            topic=humidity_topic,
-            # > unit_of_measurement: '%'
-            # https://www.home-assistant.io/integrations/sensor.mqtt/#temperature-and-humidity-sensors
-            payload=f"{(measurement.relative_humidity * 100):.02f}",
-            retain=False,
-        )
+            await mqtt_client.publish(
+                topic=humidity_topic,
+                # > unit_of_measurement: '%'
+                # https://www.home-assistant.io/integrations/sensor.mqtt/#temperature-and-humidity-sensors
+                payload=f"{(measurement.relative_humidity * 100):.02f}",
+                retain=False,
+            )
 
 
 def _main() -> None:
@@ -380,16 +294,18 @@ def _main() -> None:
             f" {wireless_sensor_mqtt._homeassistant.NODE_ID_ALLOWED_CHARS})"
             "\nchange argument of --homeassistant-node-id"
         )
-    _run(
-        mqtt_host=args.mqtt_host,
-        mqtt_port=mqtt_port,
-        mqtt_disable_tls=args.mqtt_disable_tls,
-        mqtt_username=args.mqtt_username,
-        mqtt_password=mqtt_password,
-        mqtt_topic_prefix=args.mqtt_topic_prefix,
-        homeassistant_discovery_prefix=args.homeassistant_discovery_prefix,
-        homeassistant_node_id=args.homeassistant_node_id,
-        mock_measurements=args.mock_measurements,
-        gdo0_gpio_line_name=args.gdo0_gpio_line_name.encode(),
-        unlock_spi_device=args.unlock_spi_device,
+    asyncio.run(
+        _run(
+            mqtt_host=args.mqtt_host,
+            mqtt_port=mqtt_port,
+            mqtt_disable_tls=args.mqtt_disable_tls,
+            mqtt_username=args.mqtt_username,
+            mqtt_password=mqtt_password,
+            mqtt_topic_prefix=args.mqtt_topic_prefix,
+            homeassistant_discovery_prefix=args.homeassistant_discovery_prefix,
+            homeassistant_node_id=args.homeassistant_node_id,
+            mock_measurements=args.mock_measurements,
+            gdo0_gpio_line_name=args.gdo0_gpio_line_name.encode(),
+            unlock_spi_device=args.unlock_spi_device,
+        )
     )

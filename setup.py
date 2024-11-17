@@ -67,12 +67,12 @@ setuptools.setup(
     entry_points={
         "console_scripts": ["wireless-sensor-mqtt = wireless_sensor_mqtt:_main"]
     },
-    python_requires=">=3.9",  # python<3.9 untested
+    python_requires=">=3.9",  # <3.9 untested
     install_requires=[
         # >=0.3.0 for FT017TH(unlock_spi_device=True)
         # >=0.4.0 for FT017TH(gdo0_gpio_line_name=…)
         "wireless-sensor>=0.4.0,<0.5",
-        "paho-mqtt<2",
+        "aiomqtt>=2.3,<3",  # <2.3 untested
     ],
     setup_requires=["setuptools_scm"],
     tests_require=["pytest"],

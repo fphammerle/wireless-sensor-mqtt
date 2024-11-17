@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - declare compatibility with `python3.11`
 
 ### Changed
+- migrate from (paho-mqtt)[https://github.com/eclipse-paho/paho.mqtt.python]
+  to its async wrapper (aiomqtt)[https://github.com/empicano/aiomqtt]
 - container image: upgrade alpine base image from 3.19 to 3.20
 - container image: upgrade python from 3.10 to 3.11
 
