@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - container image: upgrade alpine base image from 3.19 to 3.20
+- container image: upgrade python from 3.10 to 3.11
 
 ### Removed
 - compatibility with `python3.8`
