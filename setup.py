@@ -58,7 +58,6 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: POSIX :: Linux",
         # .github/workflows/python.yml
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Topic :: Home Automation",
@@ -67,7 +66,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": ["wireless-sensor-mqtt = wireless_sensor_mqtt:_main"]
     },
-    python_requires=">=3.8",  # python<3.8 untested
+    python_requires=">=3.9",  # python<3.9 untested
     install_requires=[
         # >=0.3.0 for FT017TH(unlock_spi_device=True)
         # >=0.4.0 for FT017TH(gdo0_gpio_line_name=…)

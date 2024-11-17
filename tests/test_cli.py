@@ -32,7 +32,7 @@ _ARGV_PREFIX = [
 ]
 
 
-# pylint: disable=protected-access
+# pylint: disable=protected-access,too-many-positional-arguments
 
 
 @pytest.mark.parametrize(

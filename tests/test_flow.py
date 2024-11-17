@@ -24,7 +24,7 @@ import wireless_sensor
 
 import wireless_sensor_mqtt
 
-# pylint: disable=protected-access
+# pylint: disable=protected-access,too-many-positional-arguments
 
 
 @pytest.mark.parametrize(
@@ -151,6 +151,7 @@ def test__run(  # pylint: disable=too-many-locals
                 gdo0_gpio_line_name=gdo0_gpio_line_name,
                 unlock_spi_device=unlock_spi_device,
             )
+    # pylint: disable=duplicate-code
     init_mqtt_client_mock.assert_called_once_with(
         host=mqtt_host,
         port=mqtt_port,

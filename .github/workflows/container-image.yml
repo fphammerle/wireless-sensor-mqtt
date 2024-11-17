@@ -28,4 +28,4 @@ jobs:
           SETUPTOOLS_SCM_PRETEND_VERSION=0
         platforms: |
           linux/amd64
-          linux/arm/v7
+          linux/arm64

@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=docker.io/python:3.10-alpine3.19
+ARG BASE_IMAGE=docker.io/python:3.10-alpine3.20
 ARG SOURCE_DIR_PATH=/wireless-sensor-mqtt
 
 
@@ -16,7 +16,7 @@ RUN apk add --no-cache \
     && adduser -S build
 
 USER build
-RUN pip install --user --no-cache-dir pipenv==2021.5.29
+RUN pip install --user --no-cache-dir pipenv==2024.1.0
 
 ARG SOURCE_DIR_PATH
 COPY --chown=build:nobody Pipfile Pipfile.lock $SOURCE_DIR_PATH/
@@ -25,7 +25,7 @@ ENV PIPENV_CACHE_DIR=/tmp/pipenv-cache \
     PIPENV_VENV_IN_PROJECT=yes-please \
     PATH=/home/build/.local/bin:$PATH
 # `sponge` is not pre-installed
-RUN jq 'del(.default."wireless-sensor-mqtt", .default."sanitized-package")' Pipfile.lock > Pipfile.lock~ \
+RUN jq 'del(.default."wireless-sensor-mqtt")' Pipfile.lock > Pipfile.lock~ \
     && mv Pipfile.lock~ Pipfile.lock \
     && pipenv install --deploy --verbose
 COPY --chown=build:nobody . $SOURCE_DIR_PATH
