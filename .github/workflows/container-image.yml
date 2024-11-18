@@ -29,3 +29,13 @@ jobs:
         platforms: |
           linux/amd64
           linux/arm64
+  # long build time as numpy does not provide wheel for armv7
+  docker-build-armv7:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: docker/setup-qemu-action@v3.2.0
+    - uses: docker/setup-buildx-action@v3.7.1
+    - uses: docker/build-push-action@v6.9.0
+      with:
+        build-args: SETUPTOOLS_SCM_PRETEND_VERSION=0
+        platforms: linux/arm/v7

@@ -6,13 +6,14 @@ ARG SOURCE_DIR_PATH=/wireless-sensor-mqtt
 FROM $BASE_IMAGE as build
 
 RUN apk add --no-cache \
-        g++ `# numpy build` \
         gcc `# spidev build` \
-        gfortran `# numpy build` \
         git `# setuptools_scm` \
         jq `# edit Pipfile.lock` \
         linux-headers `# spidev build linux/spi/spidev.h` \
         musl-dev `# spidev build` \
+    && if [ "$(arch | cut -c1-4)" = "armv" ]; then \
+      apk add --no-cache g++ gfortran samurai `# numpy build`; \
+    fi \
     && adduser -S build
 
 USER build

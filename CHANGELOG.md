@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - compatibility with `python3.8`
-- container image: no longer test build on armv7
 
 ## [0.4.0] - 2024-08-12
 ### Added
