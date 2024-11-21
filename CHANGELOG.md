@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - migrate from (paho-mqtt)[https://github.com/eclipse-paho/paho.mqtt.python]
   to its async wrapper (aiomqtt)[https://github.com/empicano/aiomqtt]
+- require `wireless-sensor` v1.0.0a0 to fix frequent losses of mqtt connection
+  ("aiomqtt.exceptions.MqttError: Operation timed out"
+  / "RuntimeError: Message publish failed: The connection was lost.")
+- quit after one hour without valid packet
 - container image: upgrade alpine base image from 3.19 to 3.20
 - container image: upgrade python from 3.10 to 3.11
 

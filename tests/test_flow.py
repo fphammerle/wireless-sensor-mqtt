@@ -19,6 +19,7 @@ import datetime
 import json
 import logging
 import ssl
+import typing
 import unittest.mock
 
 import _pytest
@@ -89,6 +90,23 @@ async def test__publish_homeassistant_discovery_config(
     }
 
 
+async def _ft017th_receive_mock(
+    sensor: wireless_sensor.FT017TH, timeout_seconds: int
+) -> typing.AsyncIterator[wireless_sensor.Measurement]:
+    assert isinstance(sensor, wireless_sensor.FT017TH)
+    assert timeout_seconds == 60 * 60
+    yield wireless_sensor.Measurement(
+        decoding_timestamp=datetime.datetime(2020, 12, 7, 18, 5, 1),
+        temperature_degrees_celsius=23.1234567,
+        relative_humidity=0.501234567,
+    )
+    yield wireless_sensor.Measurement(
+        decoding_timestamp=datetime.datetime(2020, 12, 7, 18, 6, 19),
+        temperature_degrees_celsius=24.1234567,
+        relative_humidity=0.401234567,
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mqtt_host", ["mqtt-broker.local"])
 @pytest.mark.parametrize("mqtt_port", [1234])
@@ -121,27 +139,15 @@ async def test__run(  # pylint: disable=too-many-locals
     with unittest.mock.patch(
         "wireless_sensor.FT017TH.__init__", return_value=None
     ) as sensor_init_mock, unittest.mock.patch(
-        "wireless_sensor.FT017TH.receive",
-        side_effect=[
-            [
-                wireless_sensor.Measurement(
-                    decoding_timestamp=datetime.datetime(2020, 12, 7, 18, 5, 1),
-                    temperature_degrees_celsius=23.1234567,
-                    relative_humidity=0.501234567,
-                ),
-                wireless_sensor.Measurement(
-                    decoding_timestamp=datetime.datetime(2020, 12, 7, 18, 6, 19),
-                    temperature_degrees_celsius=24.1234567,
-                    relative_humidity=0.401234567,
-                ),
-            ]
-        ],
+        "wireless_sensor.FT017TH.receive", _ft017th_receive_mock
     ):
         with unittest.mock.patch(
             "aiomqtt.Client"
         ) as mqtt_client_class_mock, unittest.mock.patch(
             "wireless_sensor_mqtt._publish_homeassistant_discovery_config"
-        ) as hass_config_mock:
+        ) as hass_config_mock, pytest.raises(
+            RuntimeError, match=r"^timeout waiting for packet$"
+        ):
             caplog.set_level(logging.DEBUG)
             await wireless_sensor_mqtt._run(
                 mqtt_host=mqtt_host,
@@ -274,7 +280,9 @@ async def test__run_mock_measurements(mqtt_topic_prefix):
         "time.sleep"
     ) as sleep_mock, unittest.mock.patch(
         "wireless_sensor_mqtt._publish_homeassistant_discovery_config"
-    ) as hass_config_mock:
+    ) as hass_config_mock, pytest.raises(
+        RuntimeError, match=r"^timeout waiting for packet$"
+    ):
         await wireless_sensor_mqtt._run(
             mqtt_host="mqtt-broker.local",
             mqtt_port=1234,

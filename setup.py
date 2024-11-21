@@ -71,7 +71,8 @@ setuptools.setup(
     install_requires=[
         # >=0.3.0 for FT017TH(unlock_spi_device=True)
         # >=0.4.0 for FT017TH(gdo0_gpio_line_name=…)
-        "wireless-sensor>=0.4.0,<0.5",
+        # >=1.0.0a0 for async FT017TH.receive()
+        "wireless-sensor==1.0.0a0",
         "aiomqtt>=2.3,<3",  # <2.3 untested
     ],
     setup_requires=["setuptools_scm"],

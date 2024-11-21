@@ -111,18 +111,18 @@ async def _publish_homeassistant_discovery_config(
         )
 
 
-def _measurement_iter(
+async def _measurement_iter(
     mock_measurements: bool, gdo0_gpio_line_name: bytes, unlock_spi_device: bool
-) -> typing.Iterator[wireless_sensor.Measurement]:
+) -> typing.AsyncIterator[wireless_sensor.Measurement]:
     if mock_measurements:
         logging.warning("publishing %d mocked measurements", _MEASUREMENT_MOCKS_COUNT)
-        return map(lambda _: _mock_measurement(), range(_MEASUREMENT_MOCKS_COUNT))
-    return filter(
-        None,
-        wireless_sensor.FT017TH(
+        for _ in range(_MEASUREMENT_MOCKS_COUNT):
+            yield _mock_measurement()
+    else:
+        async for measurement in wireless_sensor.FT017TH(
             gdo0_gpio_line_name=gdo0_gpio_line_name, unlock_spi_device=unlock_spi_device
-        ).receive(timeout_seconds=3600),
-    )
+        ).receive(timeout_seconds=3600):
+            yield measurement
 
 
 async def _run(  # pylint: disable=too-many-locals
@@ -164,7 +164,7 @@ async def _run(  # pylint: disable=too-many-locals
             humidity_topic,
         )
         homeassistant_discover_config_published = False
-        for measurement in _measurement_iter(
+        async for measurement in _measurement_iter(
             mock_measurements=mock_measurements,
             gdo0_gpio_line_name=gdo0_gpio_line_name,
             unlock_spi_device=unlock_spi_device,
@@ -191,6 +191,7 @@ async def _run(  # pylint: disable=too-many-locals
                 payload=f"{(measurement.relative_humidity * 100):.02f}",
                 retain=False,
             )
+        raise RuntimeError("timeout waiting for packet")
 
 
 def _main() -> None:

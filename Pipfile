@@ -32,4 +32,8 @@ dill = {markers = "python_version >= '0'"}
 [requires]
 python_version = "3"
 
+[pipenv]
+# wireless-sensor v1.0.0a0
+allow_prereleases = true
+
 # Pipfile syntax: https://github.com/pypa/pipfile#pipfile
