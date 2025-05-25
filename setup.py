@@ -75,6 +75,5 @@ setuptools.setup(
         "wireless-sensor>=1.0.0,<2",
         "aiomqtt>=2.3,<3",  # <2.3 untested
     ],
-    setup_requires=["setuptools_scm"],
     tests_require=["pytest"],
 )
